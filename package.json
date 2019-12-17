@@ -10,17 +10,22 @@
     "@types/node": "^12.12.18",
     "@types/react": "^16.9.16",
     "@types/react-dom": "^16.9.4",
+    "electron-is-dev": "^1.1.0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-scripts": "3.3.0",
-    "typescript": "^3.7.3"
+    "typescript": "^3.7.3",
+    "zeromq": "^6.0.0-beta.5",
+    "zmq_jupyter": "file:../node_stuff/zmq_jupyter"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "electron-dev": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\""
   },
+  "main": "public/electron.ts",
   "eslintConfig": {
     "extends": "react-app"
   },
@@ -35,5 +40,11 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^5.0.1",
+    "electron": "^7.1.5",
+    "electron-builder": "^21.2.0",
+    "wait-on": "^3.3.0"
   }
 }
