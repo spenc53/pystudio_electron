@@ -1,15 +1,10 @@
-const electron = require('electron');
-const app = electron.app;
-const BrowserWindow = electron.BrowserWindow;
+import { app, BrowserWindow } from 'electron';
+import * as path from 'path';
+import * as isDev from 'electron-is-dev';
 
-const path = require('path');
-const isDev = require('electron-is-dev');
+import { JupyterKernelClient, KernelConfig } from 'zmq_jupyter';
 
-const { JupyterKernelClient } = require('zmq_jupyter');
-
-const { ipcMain } = require('electron')
-
-const config = {
+const config: KernelConfig = {
   shell_port: "53794",
   iopub_port: "53795",
   stdin_port: "53796",
@@ -22,7 +17,7 @@ const config = {
   kernel_name: ""
 }
 
-let mainWindow;
+let mainWindow: any;
 
 const client = new JupyterKernelClient(config);
 
@@ -34,17 +29,12 @@ function createWindow() {
       nodeIntegration: true
   }});
 
-  // mainWindow.webContents.once('dom-ready', () => {
-  //   console.log('here')
-  //   client.getKernelInfo();
-  //   client.subscribeToIOLoop((data) => {
-  //     const client = new JupyterKernelClient(config);
-  //     client.getKernelInfo();
-  //     client.subscribeToIOLoop((data) => {
-  //       mainWindow.webContents.send("shell_channel", data)
-  //     })
-  //   });
-  // })
+  mainWindow.webContents.once('dom-ready', () => {
+    client.getKernelInfo();
+    client.subscribeToIOLoop((data) => {
+      mainWindow.webContents.send("shell_channel", data)
+    });
+  })
   
 
   
@@ -58,7 +48,7 @@ function createWindow() {
   mainWindow.on('closed', () => mainWindow = null);
 }
 
-app.on('ready', createWindow);
+app.once('ready', createWindow);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

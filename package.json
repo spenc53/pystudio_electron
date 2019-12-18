@@ -18,14 +18,27 @@
     "zeromq": "^6.0.0-beta.5",
     "zmq_jupyter": "file:../node_stuff/zmq_jupyter"
   },
+  "build": {
+    "files": [
+      "dist/",
+      "node_modules/",
+      "app.html",
+      "main.prod.js",
+      "main.prod.js.map",
+      "package.json"
+    ]
+  },
+  "homepage": "./",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "electron-dev": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\""
+    "electron-dev": "concurrently \"tsc ./public/electron.ts -w\" \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "predist": "tsc ./public/electron.ts && npm run build",
+    "dist": "electron-builder"
   },
-  "main": "public/electron.ts",
+  "main": "./public/electron.js",
   "eslintConfig": {
     "extends": "react-app"
   },
@@ -45,6 +58,8 @@
     "concurrently": "^5.0.1",
     "electron": "^7.1.5",
     "electron-builder": "^21.2.0",
+    "electron-reload": "^1.5.0",
+    "nodemon": "^2.0.2",
     "wait-on": "^3.3.0"
   }
 }
