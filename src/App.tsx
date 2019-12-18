@@ -15,21 +15,31 @@ declare global {
 const { ipcRenderer } = window.require('electron');
 
 class App extends Component {
+  state: {
+    data: []
+  };
 
   constructor(props: any) {
     super(props);
+    
+    this.state = {
+      data: []
+    };
 
     ipcRenderer.on("shell_channel", (event, args) => {
-      console.log(event);
-      console.log(args);
+      this.setState({
+        data: this.state.data.concat(args)
+      })
     }) 
   }
 
   render() {
+    const { data } = this.state;
     return (
       <div className="App">
         <header className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
+          {JSON.stringify(data)}
           <p>
             Edit <code>src/App.tsx</code> and save to reload.
           </p>
