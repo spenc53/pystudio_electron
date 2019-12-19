@@ -26,6 +26,10 @@ class App extends Component {
       data: []
     };
 
+    ipcRenderer.on("kernel_info", (event, args) => {
+
+    })
+
     ipcRenderer.on("shell_channel", (event, args) => {
       this.setState({
         data: this.state.data.concat(args)
