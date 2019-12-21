@@ -33,7 +33,7 @@ function createWindow() {
             mainWindow.webContents.send("kernel_info", data);
         });
         client.subscribeToIOLoop(function (data) {
-            mainWindow.webContents.send("shell_channel", data);
+            mainWindow.webContents.send("io_pub_channel", data);
         });
     });
     // let menu = Menu.buildFromTemplate([{

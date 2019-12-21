@@ -38,7 +38,7 @@ function createWindow() {
       mainWindow.webContents.send("kernel_info", data);
     });
     client.subscribeToIOLoop((data) => {
-      mainWindow.webContents.send("shell_channel", data)
+      mainWindow.webContents.send("io_pub_channel", data)
     });
   })
   
