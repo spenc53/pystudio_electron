@@ -1,38 +1,53 @@
-.App {
-  text-align: center;
+
+.app {
+  background: white;
+  height: 100%;
+  width: 100%;
+  overflow: hidden
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.console {
+  height: 100%;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+/* THIS IS FOR THE CODE OUTPUT */
+.output {
+  text-align: left;
+  font-family: monospace;
+  overflow: scroll;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.console-content {
   display: flex;
+  justify-content: flex-end;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  height: 100%;
+  overflow: scroll;
 }
 
-.App-link {
-  color: #61dafb;
+/* THIS IS FOR THE CODE INPUT */
+.cursor {
+  position: relative;
+  font-family: monospace;
+}
+.cursor i {
+  position: absolute;
+  width: 1px;
+  height: 80%;
+  background-color: gray;
+  left: 5px;
+  top: 10%;
+  animation-name: blink;
+  animation-duration: 800ms;
+  animation-iteration-count: infinite;
+  opacity: 1;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.cursor input:focus + i {
+  display: none;
+}
+
+@keyframes blink {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
