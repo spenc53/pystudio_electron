@@ -1,8 +1,10 @@
-import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain } from 'electron';
 import * as path from 'path';
 import * as isDev from 'electron-is-dev';
+import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST } from '../src/constants/Channels';
 
 import { JupyterKernelClient, KernelConfig } from 'zmq_jupyter';
+
 
 const config: KernelConfig = {
   shell_port: "53794",
@@ -17,9 +19,11 @@ const config: KernelConfig = {
   kernel_name: ""
 }
 
+const client = new JupyterKernelClient(config);
+client.setVerbose(true);
+
 let mainWindow: any;
 
-const client = new JupyterKernelClient(config);
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -34,23 +38,23 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => mainWindow.show());
 
   mainWindow.webContents.once('dom-ready', () => {
+    ipcMain.addListener(SHELL_CHANNEL_CODE, (event, args) => {
+      client.sendShellCommand(args, (data) => console.log(data))
+    });
+    ipcMain.addListener(STDIN_CHANNEL_REPLY, (event, args) => {
+      // client.sendShellCommand
+    })
+    
     client.getKernelInfo((data) => {
       mainWindow.webContents.send("kernel_info", data);
     });
     client.subscribeToIOLoop((data) => {
       mainWindow.webContents.send("io_pub_channel", data)
     });
+    client.startSTDINLoop((data) => {
+      mainWindow.webContents.send(STDIN_CHANNEL_REQUEST, data);
+    })
   })
-  
-  // let menu = Menu.buildFromTemplate([{
-  //       label: 'Menu',
-  //       submenu: [
-  //           {label:'Adjust Notification Value'},
-  //           {label:'CoinMarketCap'},
-  //           {label:'Exit'}
-  //       ]
-  //   }]);
-  // Menu.setApplicationMenu(menu); 
 
   mainWindow.loadURL(isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../build/index.html')}`);
   if (isDev) {
@@ -136,7 +140,7 @@ const template: MenuItemConstructorOptions[] = [
 
 if (process.platform === 'darwin') {
   template.unshift({
-    label: app.getName(),
+    label: app.name,
     submenu: [
       {role: 'about'},
       {type: 'separator'},

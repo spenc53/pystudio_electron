@@ -1,10 +1,11 @@
-import React, { Component, Children } from 'react';
+import React, { Component } from 'react';
 import './App.css';
 import ColoredMessage from './models/ColoredMessage';
 
 import SplitPane from './splitpane/SplitPane';
 
 import { IpcRenderer } from 'electron';
+import { SHELL_CHANNEL_CODE } from './constants/Channels';
 
 declare global {
   interface Window {
@@ -122,8 +123,8 @@ class App extends Component {
 
   _handleKeyDown = (e: any) => {
     if (e.key === 'Enter') {
-      const data = e.target.value;
-      console.log(data);
+      const code = e.target.value;
+      ipcRenderer.send(SHELL_CHANNEL_CODE, code);
       e.target.value = "";
     }
   }

@@ -3,6 +3,7 @@ exports.__esModule = true;
 var electron_1 = require("electron");
 var path = require("path");
 var isDev = require("electron-is-dev");
+var Channels_1 = require("../src/constants/Channels");
 var zmq_jupyter_1 = require("zmq_jupyter");
 var config = {
     shell_port: "53794",
@@ -16,8 +17,9 @@ var config = {
     signature_scheme: "",
     kernel_name: ""
 };
-var mainWindow;
 var client = new zmq_jupyter_1.JupyterKernelClient(config);
+client.setVerbose(true);
+var mainWindow;
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
         width: 900,
@@ -29,22 +31,19 @@ function createWindow() {
     });
     mainWindow.once('ready-to-show', function () { return mainWindow.show(); });
     mainWindow.webContents.once('dom-ready', function () {
+        electron_1.ipcMain.addListener(Channels_1.SHELL_CHANNEL_CODE, function (event, args) {
+            client.sendShellCommand(args, function (data) { return console.log(data); });
+        });
         client.getKernelInfo(function (data) {
             mainWindow.webContents.send("kernel_info", data);
         });
         client.subscribeToIOLoop(function (data) {
             mainWindow.webContents.send("io_pub_channel", data);
         });
+        client.startSTDINLoop(function (data) {
+            console.log(JSON.stringify(data, null, 2));
+        });
     });
-    // let menu = Menu.buildFromTemplate([{
-    //       label: 'Menu',
-    //       submenu: [
-    //           {label:'Adjust Notification Value'},
-    //           {label:'CoinMarketCap'},
-    //           {label:'Exit'}
-    //       ]
-    //   }]);
-    // Menu.setApplicationMenu(menu); 
     mainWindow.loadURL(isDev ? 'http://localhost:3000' : "file://" + path.join(__dirname, '../build/index.html'));
     if (isDev) {
         // Open the DevTools.
@@ -112,7 +111,7 @@ var template = [
 ];
 if (process.platform === 'darwin') {
     template.unshift({
-        label: electron_1.app.getName(),
+        label: electron_1.app.name,
         submenu: [
             { role: 'about' },
             { type: 'separator' },
