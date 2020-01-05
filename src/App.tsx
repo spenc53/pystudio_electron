@@ -4,22 +4,30 @@ import ColoredMessage from './models/ColoredMessage';
 
 import SplitPane from './splitpane/SplitPane';
 
-import { IpcRenderer } from 'electron';
-import { SHELL_CHANNEL_CODE } from './constants/Channels';
+import { IpcRenderer, Remote, Dialog } from 'electron';
+import { SHELL_CHANNEL_CODE, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT } from './constants/Channels';
+import { KernelState } from './constants/KernelState';
 
 declare global {
   interface Window {
     require: (module: 'electron') => {
-      ipcRenderer: IpcRenderer
+      ipcRenderer: IpcRenderer,
+      remote: Remote,
     };
   }
 }
 
-const { ipcRenderer } = window.require('electron');
+const fs = window.require('fs');
+const path = window.require('path');
+
+const { ipcRenderer, remote } = window.require('electron');
+const dialog: Dialog = remote.dialog;
+
 
 class App extends Component {
   state: {
-    data: ColoredMessage[][]
+    data: ColoredMessage[][],
+    executionState: KernelState;
   };
   execution_count = 0;
 
@@ -34,15 +42,32 @@ class App extends Component {
     super(props);
 
     this.parseData = this.parseData.bind(this);
+    this.Input = this.Input.bind(this);
 
     this.endofInput = React.createRef();
 
     this.state = {
-      data: []
+      data: [],
+      executionState: KernelState.IDLE
     };
 
     ipcRenderer.on("kernel_info", (event, args) => {
+      this.setState({
+        executionState: KernelState.IDLE
+      })
+    });
 
+    ipcRenderer.on(OPEN_PROJECT, (event) => {
+      const data = dialog.showOpenDialogSync({properties: ['openDirectory']});
+      console.log(data);
+      if (!data) return;
+      fs.readdir(data[0], 'utf8', (error: any, items: any) => {
+        console.log(items);
+ 
+        for (var i=0; i<items.length; i++) {
+            console.log(items[i]);
+        }
+      })
     })
 
     ipcRenderer.on("io_pub_channel", (event, args) => {
@@ -50,7 +75,11 @@ class App extends Component {
         this.execution_count = args['execution_count']
       }
 
-      if ('data' in args) {
+      if ('execution_state' in args) {
+        this.setState({
+          executionState: args['execution_state'].toUpperCase()
+        })
+      } else if ('data' in args) {
         // parse the data
         this.parseData(args['data'])
       } else if ('code' in args) {
@@ -68,9 +97,12 @@ class App extends Component {
         this.execution_count -= 1;
         this.parseError(args)
       } else if ('name' in args && args['name'] === 'stdout') {
-        // handle new lines...
+        const messages = [];
+        for (const text of args['text'].split("\n")) {
+          messages.push([new ColoredMessage(text, 'black')])
+        }
         this.setState({
-          data: this.state.data.concat([[new ColoredMessage(args['text'], 'black')], [new ColoredMessage('', 'white')]])
+          data: this.state.data.concat(messages)
         })
       }
     });
@@ -127,6 +159,11 @@ class App extends Component {
       ipcRenderer.send(SHELL_CHANNEL_CODE, code);
       e.target.value = "";
     }
+    let charCode = String.fromCharCode(e.which).toLowerCase();
+    if(e.ctrlKey && charCode === 'c') {
+      console.log("Ctrl + C pressed");
+      ipcRenderer.send(KERNEL_INTERUPT_REQUEST);
+    }
   }
 
   render() {
@@ -156,9 +193,8 @@ class App extends Component {
     const { data } = this.state;
     return (
       <div className="console">
-        {/* <div onMouseDown={(e) => console.log("mouseDown!")} onMouseUp={(e) => console.log("mouseUp!")} style={{ width: '100%', backgroundColor: 'gray', height: "5px" }} /> */}
         <div className='console-content' style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className="output">
+          <div className="output" onKeyPress={this._handleKeyDown}>
             {data.map((coloredMessages) => {
               return (<div>
                 {coloredMessages.map((coloredMessage) => {
@@ -173,17 +209,29 @@ class App extends Component {
             })}
             <div ref={this.endofInput}></div>
           </div>
-          <div className='cursor'>
-            <span style={{ display: 'table-cell', color: "blue" }}>
-              IN[{this.execution_count}]:{'\t'}
-            </span>
-            <span style={{ display: 'table-cell', width: '100%' }}>
-              <input onKeyDown={this._handleKeyDown} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
-            </span>
-          </div>
+          <this.Input></this.Input>
         </div>
       </div>
     )
+  }
+
+  private Input() {
+    const executionState = this.state.executionState;
+    // if (executionState === KernelState.BUSY || executionState === KernelState.STARTING) {
+    //   return null;
+    // }
+    
+    return (
+      <div className='cursor'>
+        <span style={{ display: 'table-cell', color: "blue" }}>
+          IN[{this.execution_count}]:{'\t'}
+        </span>
+        <span style={{ display: 'table-cell', width: '100%' }}>
+          <input onKeyDown={this._handleKeyDown} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
+        </span>
+      </div>
+    )
+
   }
 }
 

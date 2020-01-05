@@ -4,28 +4,16 @@ var electron_1 = require("electron");
 var path = require("path");
 var isDev = require("electron-is-dev");
 var Channels_1 = require("../src/constants/Channels");
+var child_process_1 = require("child_process");
 var zmq_jupyter_1 = require("zmq_jupyter");
-var config = {
-    shell_port: "53794",
-    iopub_port: "53795",
-    stdin_port: "53796",
-    control_port: "53797",
-    hb_port: "53798",
-    key: "",
-    ip: "127.0.0.1",
-    transport: "tcp",
-    signature_scheme: "",
-    kernel_name: ""
-};
-var client = new zmq_jupyter_1.JupyterKernelClient(config);
-client.setVerbose(true);
 var mainWindow;
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
         width: 900,
         height: 680,
         webPreferences: {
-            nodeIntegration: true
+            nodeIntegration: true,
+            nodeIntegrationInWorker: true
         },
         show: false
     });
@@ -34,14 +22,12 @@ function createWindow() {
         electron_1.ipcMain.addListener(Channels_1.SHELL_CHANNEL_CODE, function (event, args) {
             client.sendShellCommand(args, function (data) { return console.log(data); });
         });
-        client.getKernelInfo(function (data) {
-            mainWindow.webContents.send("kernel_info", data);
+        electron_1.ipcMain.addListener(Channels_1.STDIN_CHANNEL_REPLY, function (event, args) {
+            client.sendStdinReply(args);
         });
-        client.subscribeToIOLoop(function (data) {
-            mainWindow.webContents.send("io_pub_channel", data);
-        });
-        client.startSTDINLoop(function (data) {
-            console.log(JSON.stringify(data, null, 2));
+        electron_1.ipcMain.addListener(Channels_1.KERNEL_INTERUPT_REQUEST, function (event) {
+            console.log("kernel interrupt request sent!");
+            kernelProcess.kill('SIGINT');
         });
     });
     mainWindow.loadURL(isDev ? 'http://localhost:3000' : "file://" + path.join(__dirname, '../build/index.html'));
@@ -54,6 +40,10 @@ function createWindow() {
 }
 electron_1.app.once('ready', createWindow);
 electron_1.app.on('window-all-closed', function () {
+    if (kernelProcess != null) {
+        console.log('killing python process');
+        kernelProcess.kill('SIGQUIT');
+    }
     if (process.platform !== 'darwin') {
         electron_1.app.quit();
     }
@@ -63,7 +53,88 @@ electron_1.app.on('activate', function () {
         createWindow();
     }
 });
+// const command = [
+//   "source",
+//   "/Users/spencerseeger/Documents/test/pystudio_server/env/bin/activate",
+//   "&&",
+//   "python",
+//   "-m",
+//   "ipykernel_launcher",
+//   "-f",
+//   "config.json",
+//   "&&",
+//   "deactivate"
+// ].join(" ");
+// const command = [
+//   "source",
+//   "/Users/spencerseeger/Documents/test/pystudio_server/env/bin/activate",
+//   "&&",
+//   "python /Users/spencerseeger/Documents/test/pystudio_server/server.py",
+//   "&&",
+//   "deactivate"
+// ].join(" ");
+var command = [
+    "/Users/spencerseeger/Documents/test/pystudio_server/env/bin/python",
+    "-m",
+    "ipykernel_launcher",
+    "-f",
+    "/Users/spencerseeger/Documents/test/pystudio_server/config.json",
+].join(" ");
+// const command = [
+//   "python3",
+//   "-m",
+//   "ipykernel_launcher",
+//   "-f",
+//   "/Users/spencerseeger/Documents/test/pystudio_server/config.json",
+// ].join(" ");
+console.log(command);
+var kernelProcess = child_process_1.spawn(command, { shell: true });
+console.log(kernelProcess.pid);
+kernelProcess.stdout.on('data', function (data) {
+    if (client == null) {
+        client = new zmq_jupyter_1.JupyterKernelClient(config);
+        client.getKernelInfo(function (data) {
+            mainWindow.webContents.send("kernel_info", data);
+        });
+        client.subscribeToIOLoop(function (data) {
+            mainWindow.webContents.send("io_pub_channel", data);
+        });
+        client.startSTDINLoop(function (data) {
+            mainWindow.webContents.send(Channels_1.STDIN_CHANNEL_REQUEST, data);
+        });
+    }
+    console.log(data.toString());
+});
+kernelProcess.stderr.on('data', function (data) {
+    console.log(data.toString('utf-8'));
+});
+var config = {
+    shell_port: "53794",
+    iopub_port: "53795",
+    stdin_port: "53796",
+    control_port: "53797",
+    hb_port: "53798",
+    key: "",
+    ip: "127.0.0.1",
+    transport: "tcp",
+    signature_scheme: "",
+    kernel_name: ""
+};
+var client = null;
+// = new JupyterKernelClient(config)
+// client.setVerbose(true);
 var template = [
+    {
+        label: "file",
+        submenu: [
+            {
+                label: 'Open Project',
+                click: function () {
+                    mainWindow.webContents.send(Channels_1.OPEN_PROJECT);
+                }
+            }
+        ]
+    },
     {
         label: 'Edit',
         submenu: [
@@ -73,30 +144,8 @@ var template = [
             { role: 'cut' },
             { role: 'copy' },
             { role: 'paste' },
-            // {role: 'pasteandmatchstyle'},
             { role: 'delete' },
-            // {role: 'selectall'},
             { type: 'separator' },
-        ]
-    },
-    {
-        label: 'View',
-        submenu: [
-            { role: 'reload' },
-            // {role: 'forcereload'},
-            // {role: 'toggledevtools'},
-            // {type: 'separator'},
-            // {role: 'resetzoom'},
-            // {role: 'zoomin'},
-            // {role: 'zoomout'},
-            { type: 'separator' },
-        ]
-    },
-    {
-        role: 'window',
-        submenu: [
-            { role: 'minimize' },
-            { role: 'close' }
         ]
     },
     {
