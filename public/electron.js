@@ -40,12 +40,14 @@ function createWindow() {
 }
 electron_1.app.once('ready', createWindow);
 electron_1.app.on('window-all-closed', function () {
+    if (process.platform !== 'darwin') {
+        electron_1.app.quit();
+    }
+});
+electron_1.app.on('quit', function () {
     if (kernelProcess != null) {
         console.log('killing python process');
         kernelProcess.kill('SIGQUIT');
-    }
-    if (process.platform !== 'darwin') {
-        electron_1.app.quit();
     }
 });
 electron_1.app.on('activate', function () {
@@ -73,6 +75,7 @@ electron_1.app.on('activate', function () {
 //   "&&",
 //   "deactivate"
 // ].join(" ");
+// TODO: make read this command from a config file
 var command = [
     "/Users/spencerseeger/Documents/test/pystudio_server/env/bin/python",
     "-m",
