@@ -27,6 +27,8 @@ function createWindow() {
       client.sendShellCommand(args, (data) => console.log(data))
     });
     ipcMain.addListener(STDIN_CHANNEL_REPLY, (event, args) => {
+      console.log("std in sent");
+      console.log(args);
       client.sendStdinReply(args);
     });
     ipcMain.addListener(KERNEL_INTERUPT_REQUEST, (event) => {
@@ -108,9 +110,9 @@ const command = [
 // ].join(" ");
 
 
-console.log(command);
+// console.log(command);
 const kernelProcess = spawn(command, {shell: true});
-console.log(kernelProcess.pid);
+// console.log(kernelProcess.pid);
 kernelProcess.stdout.on('data', (data) => {
   if (client == null) {
     client = new JupyterKernelClient(config);
@@ -124,7 +126,6 @@ kernelProcess.stdout.on('data', (data) => {
       mainWindow.webContents.send(STDIN_CHANNEL_REQUEST, data);
     });
   }
-  console.log(data.toString());
 });
 
 kernelProcess.stderr.on('data', (data) => {
@@ -145,7 +146,6 @@ const config: KernelConfig = {
 }
 
 let client: JupyterKernelClient = null;
-// = new JupyterKernelClient(config)
 // client.setVerbose(true);
 
 

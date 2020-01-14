@@ -42,8 +42,10 @@ class Terminal extends React.Component<TerminalProps> {
 
     // setup subscribers
     this.parsePubChannel = this.parsePubChannel.bind(this);
+    this.parseInputRequest = this.parseInputRequest.bind(this);
 
     this.jupyterMessagingService.subscribeToPubIoChannel(this.parsePubChannel);
+    this.jupyterMessagingService.subscribeToInputChannel(this.parseInputRequest);
   }
 
   parsePubChannel(args: any) {
@@ -81,6 +83,14 @@ class Terminal extends React.Component<TerminalProps> {
         data: this.state.data.concat(messages)
       })
     }
+  }
+
+  parseInputRequest(data: any) {
+    // TODO: check to see if there is a prompt
+    // TODO: check to see if prompting for password
+    this.setState({
+      executionState: KernelState.INPUT
+    });
   }
 
   parseData(data: any) {
@@ -129,16 +139,21 @@ class Terminal extends React.Component<TerminalProps> {
   }
 
   _handleKeyDown = (e: any) => {
-    if (e.key === 'Enter') {
-      const code = e.target.value;
+    const charCode = String.fromCharCode(e.which).toLowerCase();
+    const code = e.target.value;
+
+    if (e.key === 'Enter' && this.state.executionState === KernelState.INPUT) {
+      this.jupyterMessagingService.sendInputReply(code);
+      e.target.value = "";
+    } else if (e.key === 'Enter' && this.state.executionState === KernelState.IDLE) {
       this.jupyterMessagingService.sendShellChannelCode(code);
       e.target.value = "";
-    }
-    let charCode = String.fromCharCode(e.which).toLowerCase();
-    if(e.ctrlKey && charCode === 'c') {
+    } else if (e.ctrlKey && charCode === 'c' && this.state.executionState === KernelState.BUSY) {
       console.log("Ctrl + C pressed");
       this.jupyterMessagingService.sendKernelInterrupt();
+      e.target.value = "";
     }
+
   }
 
   render() {
@@ -172,10 +187,27 @@ class Terminal extends React.Component<TerminalProps> {
   }
 
   private Input() {
-    const executionState = this.state.executionState;
     // if (executionState === KernelState.BUSY || executionState === KernelState.STARTING) {
     //   return null;
     // }
+
+    if (this.state.executionState === KernelState.BUSY) {
+      // need input but has to listen for the ctrl + c
+    }
+
+    if (this.state.executionState === KernelState.INPUT) {
+      return (
+        <div className='cursor'>
+          {/* display input request details */}
+          {/* <span style={{ display: 'table-cell', color: "blue" }}>
+            IN[{this.execution_count}]:{'\t'}
+          </span> */}
+          <span style={{ display: 'table-cell', width: '100%' }}>
+            <input onKeyDown={this._handleKeyDown} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
+          </span>
+      </div>
+      )
+    }
 
     return (
       <div className='cursor'>

@@ -23,6 +23,8 @@ function createWindow() {
             client.sendShellCommand(args, function (data) { return console.log(data); });
         });
         electron_1.ipcMain.addListener(Channels_1.STDIN_CHANNEL_REPLY, function (event, args) {
+            console.log("std in sent");
+            console.log(args);
             client.sendStdinReply(args);
         });
         electron_1.ipcMain.addListener(Channels_1.KERNEL_INTERUPT_REQUEST, function (event) {
@@ -90,9 +92,9 @@ var command = [
 //   "-f",
 //   "/Users/spencerseeger/Documents/test/pystudio_server/config.json",
 // ].join(" ");
-console.log(command);
+// console.log(command);
 var kernelProcess = child_process_1.spawn(command, { shell: true });
-console.log(kernelProcess.pid);
+// console.log(kernelProcess.pid);
 kernelProcess.stdout.on('data', function (data) {
     if (client == null) {
         client = new zmq_jupyter_1.JupyterKernelClient(config);
@@ -106,7 +108,6 @@ kernelProcess.stdout.on('data', function (data) {
             mainWindow.webContents.send(Channels_1.STDIN_CHANNEL_REQUEST, data);
         });
     }
-    console.log(data.toString());
 });
 kernelProcess.stderr.on('data', function (data) {
     console.log(data.toString('utf-8'));
@@ -124,7 +125,6 @@ var config = {
     kernel_name: ""
 };
 var client = null;
-// = new JupyterKernelClient(config)
 // client.setVerbose(true);
 var template = [
     {

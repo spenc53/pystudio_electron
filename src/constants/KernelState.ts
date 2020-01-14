@@ -1,5 +1,6 @@
 
 export enum KernelState {
     BUSY = "BUSY",
-    IDLE = "IDLE"
+    IDLE = "IDLE",
+    INPUT = "INPUT"
 }
