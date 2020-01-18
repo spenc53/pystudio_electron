@@ -11,8 +11,14 @@ npm run electron-dev
 ### Pystudio Env
 
 #### Setting up a python env
+Create a folder in which you wan to have your project then in that folder, run
+
 ```bash
 python3 -m venv env
+source env/bin/activate
+pip install ipython
+pip install ipykernel
+deactivate
 ```
 
 Folder directory for pytstudio project
