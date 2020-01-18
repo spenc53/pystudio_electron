@@ -2,12 +2,14 @@ import { app, dialog, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain }
 import * as path from 'path';
 import * as isDev from 'electron-is-dev';
 import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT } from '../src/constants/Channels';
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
+import * as fs from 'fs';
 
 import { JupyterKernelClient, KernelConfig } from 'zmq_jupyter';
 
 let mainWindow: any;
-
+let kernelProcess: ChildProcess;
+let client: JupyterKernelClient = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -49,9 +51,9 @@ function createWindow() {
 app.once('ready', createWindow);
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  // if (process.platform !== 'darwin') {
     app.quit();
-  }
+  // }
 });
 
 app.on('quit', () => {
@@ -67,86 +69,43 @@ app.on('activate', () => {
   }
 });
 
-
-// const command = [
-//   "source",
-//   "/Users/spencerseeger/Documents/test/pystudio_server/env/bin/activate",
-//   "&&",
-//   "python",
-//   "-m",
-//   "ipykernel_launcher",
-//   "-f",
-//   "config.json",
-//   "&&",
-//   "deactivate"
-// ].join(" ");
-
-// const command = [
-//   "source",
-//   "/Users/spencerseeger/Documents/test/pystudio_server/env/bin/activate",
-//   "&&",
-//   "python /Users/spencerseeger/Documents/test/pystudio_server/server.py",
-//   "&&",
-//   "deactivate"
-// ].join(" ");
-
-
-// TODO: make read this command from a config file
-const command = [
-  "/Users/spencerseeger/Documents/test/pystudio_server/env/bin/python",
-  "-m",
-  "ipykernel_launcher",
-  "-f",
-  "/Users/spencerseeger/Documents/test/pystudio_server/config.json",
-].join(" ");
-
-
-// const command = [
-//   "python3",
-//   "-m",
-//   "ipykernel_launcher",
-//   "-f",
-//   "/Users/spencerseeger/Documents/test/pystudio_server/config.json",
-// ].join(" ");
-
-
-// console.log(command);
-const kernelProcess = spawn(command, {shell: true});
-// console.log(kernelProcess.pid);
-kernelProcess.stdout.on('data', (data) => {
-  if (client == null) {
-    client = new JupyterKernelClient(config);
-    client.getKernelInfo((data) => {
-      mainWindow.webContents.send("kernel_info", data);
-    });
-    client.subscribeToIOLoop((data) => {
-      mainWindow.webContents.send("io_pub_channel", data)
-    });
-    client.startSTDINLoop((data) => {
-      mainWindow.webContents.send(STDIN_CHANNEL_REQUEST, data);
-    });
+ipcMain.addListener(OPEN_PROJECT, (event, args) => {
+  if (kernelProcess != null) {
+    console.log('killing python process')
+    kernelProcess.kill('SIGQUIT');
   }
+
+  // TODO: make read this command from a config file
+  const command = [
+    args.pythonPath,
+    "-m",
+    "ipykernel_launcher",
+    "-f",
+    args.configPath,
+  ].join(" ");
+
+  const config: KernelConfig = JSON.parse(fs.readFileSync(args.configPath).toString());
+
+  kernelProcess = spawn(command, {shell: true});
+  kernelProcess.stdout.on('data', (data) => {
+    if (client == null) {
+      client = new JupyterKernelClient(config);
+      client.getKernelInfo((data) => {
+        mainWindow.webContents.send("kernel_info", data);
+      });
+      client.subscribeToIOLoop((data) => {
+        mainWindow.webContents.send("io_pub_channel", data)
+      });
+      client.startSTDINLoop((data) => {
+        mainWindow.webContents.send(STDIN_CHANNEL_REQUEST, data);
+      });
+    }
+  });
+
+  kernelProcess.stderr.on('data', (data) => {
+    console.log(data.toString('utf-8'));
+  })
 });
-
-kernelProcess.stderr.on('data', (data) => {
-  console.log(data.toString('utf-8'));
-})
-
-const config: KernelConfig = {
-  shell_port: "53794",
-  iopub_port: "53795",
-  stdin_port: "53796",
-  control_port: "53797",
-  hb_port: "53798",
-  key: "",
-  ip: "127.0.0.1",
-  transport: "tcp",
-  signature_scheme: "",
-  kernel_name: ""
-}
-
-let client: JupyterKernelClient = null;
-// client.setVerbose(true);
 
 
 const template: MenuItemConstructorOptions[] = [

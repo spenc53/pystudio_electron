@@ -5,8 +5,11 @@ var path = require("path");
 var isDev = require("electron-is-dev");
 var Channels_1 = require("../src/constants/Channels");
 var child_process_1 = require("child_process");
+var fs = require("fs");
 var zmq_jupyter_1 = require("zmq_jupyter");
 var mainWindow;
+var kernelProcess;
+var client = null;
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
         width: 900,
@@ -42,9 +45,9 @@ function createWindow() {
 }
 electron_1.app.once('ready', createWindow);
 electron_1.app.on('window-all-closed', function () {
-    if (process.platform !== 'darwin') {
-        electron_1.app.quit();
-    }
+    // if (process.platform !== 'darwin') {
+    electron_1.app.quit();
+    // }
 });
 electron_1.app.on('quit', function () {
     if (kernelProcess != null) {
@@ -57,75 +60,39 @@ electron_1.app.on('activate', function () {
         createWindow();
     }
 });
-// const command = [
-//   "source",
-//   "/Users/spencerseeger/Documents/test/pystudio_server/env/bin/activate",
-//   "&&",
-//   "python",
-//   "-m",
-//   "ipykernel_launcher",
-//   "-f",
-//   "config.json",
-//   "&&",
-//   "deactivate"
-// ].join(" ");
-// const command = [
-//   "source",
-//   "/Users/spencerseeger/Documents/test/pystudio_server/env/bin/activate",
-//   "&&",
-//   "python /Users/spencerseeger/Documents/test/pystudio_server/server.py",
-//   "&&",
-//   "deactivate"
-// ].join(" ");
-// TODO: make read this command from a config file
-var command = [
-    "/Users/spencerseeger/Documents/test/pystudio_server/env/bin/python",
-    "-m",
-    "ipykernel_launcher",
-    "-f",
-    "/Users/spencerseeger/Documents/test/pystudio_server/config.json",
-].join(" ");
-// const command = [
-//   "python3",
-//   "-m",
-//   "ipykernel_launcher",
-//   "-f",
-//   "/Users/spencerseeger/Documents/test/pystudio_server/config.json",
-// ].join(" ");
-// console.log(command);
-var kernelProcess = child_process_1.spawn(command, { shell: true });
-// console.log(kernelProcess.pid);
-kernelProcess.stdout.on('data', function (data) {
-    if (client == null) {
-        client = new zmq_jupyter_1.JupyterKernelClient(config);
-        client.getKernelInfo(function (data) {
-            mainWindow.webContents.send("kernel_info", data);
-        });
-        client.subscribeToIOLoop(function (data) {
-            mainWindow.webContents.send("io_pub_channel", data);
-        });
-        client.startSTDINLoop(function (data) {
-            mainWindow.webContents.send(Channels_1.STDIN_CHANNEL_REQUEST, data);
-        });
+electron_1.ipcMain.addListener(Channels_1.OPEN_PROJECT, function (event, args) {
+    if (kernelProcess != null) {
+        console.log('killing python process');
+        kernelProcess.kill('SIGQUIT');
     }
+    // TODO: make read this command from a config file
+    var command = [
+        args.pythonPath,
+        "-m",
+        "ipykernel_launcher",
+        "-f",
+        args.configPath,
+    ].join(" ");
+    var config = JSON.parse(fs.readFileSync(args.configPath).toString());
+    kernelProcess = child_process_1.spawn(command, { shell: true });
+    kernelProcess.stdout.on('data', function (data) {
+        if (client == null) {
+            client = new zmq_jupyter_1.JupyterKernelClient(config);
+            client.getKernelInfo(function (data) {
+                mainWindow.webContents.send("kernel_info", data);
+            });
+            client.subscribeToIOLoop(function (data) {
+                mainWindow.webContents.send("io_pub_channel", data);
+            });
+            client.startSTDINLoop(function (data) {
+                mainWindow.webContents.send(Channels_1.STDIN_CHANNEL_REQUEST, data);
+            });
+        }
+    });
+    kernelProcess.stderr.on('data', function (data) {
+        console.log(data.toString('utf-8'));
+    });
 });
-kernelProcess.stderr.on('data', function (data) {
-    console.log(data.toString('utf-8'));
-});
-var config = {
-    shell_port: "53794",
-    iopub_port: "53795",
-    stdin_port: "53796",
-    control_port: "53797",
-    hb_port: "53798",
-    key: "",
-    ip: "127.0.0.1",
-    transport: "tcp",
-    signature_scheme: "",
-    kernel_name: ""
-};
-var client = null;
-// client.setVerbose(true);
 var template = [
     {
         label: "file",
