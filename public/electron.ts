@@ -1,7 +1,8 @@
 import { app, dialog, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain } from 'electron';
 import * as path from 'path';
 import * as isDev from 'electron-is-dev';
-import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT } from '../src/constants/Channels';
+import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT, KERNEL_STATUS } from '../src/constants/Channels';
+import { KernelStatus } from '../src/constants/KernelStatus';
 import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 
@@ -29,12 +30,10 @@ function createWindow() {
       client.sendShellCommand(args, (data) => console.log(data))
     });
     ipcMain.addListener(STDIN_CHANNEL_REPLY, (event, args) => {
-      console.log("std in sent");
-      console.log(args);
+
       client.sendStdinReply(args);
     });
     ipcMain.addListener(KERNEL_INTERUPT_REQUEST, (event) => {
-      console.log("kernel interrupt request sent!")
       kernelProcess.kill('SIGINT');
     });
   })
@@ -86,6 +85,8 @@ ipcMain.addListener(OPEN_PROJECT, (event, args) => {
 
   const config: KernelConfig = JSON.parse(fs.readFileSync(args.configPath).toString());
 
+  mainWindow.webContents.send(KERNEL_STATUS, (KernelStatus.RUNNING));
+
   kernelProcess = spawn(command, {shell: true});
   kernelProcess.stdout.on('data', (data) => {
     if (client == null) {
@@ -105,6 +106,20 @@ ipcMain.addListener(OPEN_PROJECT, (event, args) => {
   kernelProcess.stderr.on('data', (data) => {
     console.log(data.toString('utf-8'));
   })
+
+  kernelProcess.on('exit', () => {
+    if (!mainWindow) {
+      return;
+    }
+    mainWindow.webContents.send(KERNEL_STATUS, KernelStatus.STOPPED);
+  });
+
+  kernelProcess.on('close', () => {
+    if (!mainWindow) {
+      return;
+    }
+    mainWindow.webContents.send(KERNEL_STATUS, KernelStatus.STOPPED);
+  });
 });
 
 

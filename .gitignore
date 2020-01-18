@@ -2,7 +2,8 @@
 
 # build files
 public/electron.js
-src/constants/Constants.js
+src/constants/*.js
+
 
 # dependencies
 /node_modules

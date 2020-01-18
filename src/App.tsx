@@ -3,10 +3,11 @@ import './App.css';
 
 import SplitPane from './splitpane/SplitPane';
 
-import { IpcRenderer, Remote, Dialog, ipcMain } from 'electron';
-import { OPEN_PROJECT } from './constants/Channels';
+import { IpcRenderer, Remote, Dialog } from 'electron';
+import { OPEN_PROJECT, KERNEL_STATUS } from './constants/Channels';
 import Terminal from './terminal';
 import JupyterMessagingService from './services/JupyterMessagingService';
+import { KernelStatus } from './constants/KernelStatus';
 
 declare global {
   interface Window {
@@ -18,7 +19,6 @@ declare global {
 }
 
 const fs = window.require('fs');
-const path = window.require('path');
 
 const { ipcRenderer, remote } = window.require('electron');
 const dialog: Dialog = remote.dialog;
@@ -29,8 +29,10 @@ class App extends Component {
   messagingService: JupyterMessagingService;
 
   state: {
-    active: false
+    active: KernelStatus
   };
+
+  projectDir: string;
 
   constructor(props: any) {
     super(props);
@@ -38,8 +40,9 @@ class App extends Component {
     this.messagingService = new JupyterMessagingService(ipcRenderer);
 
     this.state = {
-      active: false
+      active: KernelStatus.STOPPED
     };
+    this.projectDir = '';
 
     this.openPystudioProject = this.openPystudioProject.bind(this);
 
@@ -49,10 +52,18 @@ class App extends Component {
       if (!data || data.length === 0) return;
 
       this.openPystudioProject(data[0]);
-    })
+    });
+
+    ipcRenderer.on(KERNEL_STATUS, (event, args) => {
+      console.log(args);
+      this.setState({
+        active: args
+      });
+    });
   }
 
   render() {
+    const { active } = this.state;
     return (
       <div style={{ height: '100vh' }}>
         <SplitPane >
@@ -60,7 +71,10 @@ class App extends Component {
             {this.file()}
           </SplitPane.Top>
           <SplitPane.Bottom>
-            <Terminal messagingService={this.messagingService}></Terminal>
+            { active === KernelStatus.STOPPED ?  
+              null :
+              <Terminal messagingService={this.messagingService}></Terminal>
+            }
           </SplitPane.Bottom>
         </SplitPane>
       </div>

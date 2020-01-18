@@ -4,6 +4,7 @@ var electron_1 = require("electron");
 var path = require("path");
 var isDev = require("electron-is-dev");
 var Channels_1 = require("../src/constants/Channels");
+var KernelStatus_1 = require("../src/constants/KernelStatus");
 var child_process_1 = require("child_process");
 var fs = require("fs");
 var zmq_jupyter_1 = require("zmq_jupyter");
@@ -74,6 +75,7 @@ electron_1.ipcMain.addListener(Channels_1.OPEN_PROJECT, function (event, args) {
         args.configPath,
     ].join(" ");
     var config = JSON.parse(fs.readFileSync(args.configPath).toString());
+    mainWindow.webContents.send(Channels_1.KERNEL_STATUS, (KernelStatus_1.KernelStatus.RUNNING));
     kernelProcess = child_process_1.spawn(command, { shell: true });
     kernelProcess.stdout.on('data', function (data) {
         if (client == null) {
@@ -91,6 +93,18 @@ electron_1.ipcMain.addListener(Channels_1.OPEN_PROJECT, function (event, args) {
     });
     kernelProcess.stderr.on('data', function (data) {
         console.log(data.toString('utf-8'));
+    });
+    kernelProcess.on('exit', function () {
+        if (!mainWindow) {
+            return;
+        }
+        mainWindow.webContents.send(Channels_1.KERNEL_STATUS, KernelStatus_1.KernelStatus.STOPPED);
+    });
+    kernelProcess.on('close', function () {
+        if (!mainWindow) {
+            return;
+        }
+        mainWindow.webContents.send(Channels_1.KERNEL_STATUS, KernelStatus_1.KernelStatus.STOPPED);
     });
 });
 var template = [

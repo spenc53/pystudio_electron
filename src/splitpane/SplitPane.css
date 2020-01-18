@@ -12,10 +12,10 @@
 }
 
 .split-pane-top {
-    background-color: aqua
+    background-color: white
 }
 .split-pane-bottom {
-    background-color: cornflowerblue;
+    background-color: white;
     height: 100%
 }
 

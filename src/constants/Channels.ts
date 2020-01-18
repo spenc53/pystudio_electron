@@ -10,3 +10,5 @@ export const KERNEL_INTERUPT_REQUEST = "kernel_interrupt_request";
 
 export const OPEN_PROJECT = "open_project";
 export const START_IPYTHON_PROCESS = "start_ipython_process";
+
+export const KERNEL_STATUS = "kernel_status";
