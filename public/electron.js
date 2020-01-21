@@ -27,12 +27,9 @@ function createWindow() {
             client.sendShellCommand(args, function (data) { return console.log(data); });
         });
         electron_1.ipcMain.addListener(Channels_1.STDIN_CHANNEL_REPLY, function (event, args) {
-            console.log("std in sent");
-            console.log(args);
             client.sendStdinReply(args);
         });
         electron_1.ipcMain.addListener(Channels_1.KERNEL_INTERUPT_REQUEST, function (event) {
-            console.log("kernel interrupt request sent!");
             kernelProcess.kill('SIGINT');
         });
     });

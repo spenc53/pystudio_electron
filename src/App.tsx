@@ -48,14 +48,12 @@ class App extends Component {
 
     ipcRenderer.on(OPEN_PROJECT, (event) => {
       const data = dialog.showOpenDialogSync({properties: ['openDirectory']});
-      console.log(data);
       if (!data || data.length === 0) return;
 
       this.openPystudioProject(data[0]);
     });
 
     ipcRenderer.on(KERNEL_STATUS, (event, args) => {
-      console.log(args);
       this.setState({
         active: args
       });

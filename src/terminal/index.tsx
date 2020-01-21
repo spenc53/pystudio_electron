@@ -53,7 +53,14 @@ class Terminal extends React.Component<TerminalProps> {
       this.execution_count = args['execution_count']
     }
 
+    console.log(args);
+
     if ('execution_state' in args) {
+      if (args['execution_state'].toUpperCase() === 'IDLE') {
+        this.setState({
+          data: this.state.data.concat([[new ColoredMessage('', "white")]])
+        })
+      }
       this.setState({
         executionState: args['execution_state'].toUpperCase()
       })
@@ -67,9 +74,6 @@ class Terminal extends React.Component<TerminalProps> {
       })
       if (args['code'] === '') {
         this.execution_count -= 1;
-        this.setState({
-          data: this.state.data.concat([[new ColoredMessage('', 'white')]])
-        })
       }
     } else if ('ename' in args) {
       this.execution_count -= 1;
@@ -98,7 +102,7 @@ class Terminal extends React.Component<TerminalProps> {
     if ('text/plain' in data) {
       const output = 'OUT[' + this.execution_count + ']: ' + data['text/plain'];
       this.setState({
-        data: this.state.data.concat([[new ColoredMessage(output, 'black')], [new ColoredMessage('', 'white')]])
+        data: this.state.data.concat([[new ColoredMessage(output, 'black')]])
       })
     }
   }
@@ -116,7 +120,7 @@ class Terminal extends React.Component<TerminalProps> {
       dat = dat.concat(m);
     }
     this.setState({
-      data: dat.concat([[new ColoredMessage('', 'white')]])
+      data: dat
     })
   }
 
@@ -128,7 +132,7 @@ class Terminal extends React.Component<TerminalProps> {
       for (const splitText of splitTexts) {
 
         const coloredMessage = new ColoredMessage(splitText);
-        if (!coloredMessage.getText().trim()) {
+        if (!coloredMessage.getText()) {
           continue;
         }
         message.push(coloredMessage);
