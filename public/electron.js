@@ -4,13 +4,11 @@ var electron_1 = require("electron");
 var path = require("path");
 var isDev = require("electron-is-dev");
 var Channels_1 = require("../src/constants/Channels");
-var KernelStatus_1 = require("../src/constants/KernelStatus");
 var child_process_1 = require("child_process");
 var fs = require("fs");
 var zmq_jupyter_1 = require("zmq_jupyter");
 var mainWindow;
-var kernelProcess;
-var client = null;
+var kernelConnection;
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
         width: 900,
@@ -24,13 +22,16 @@ function createWindow() {
     mainWindow.once('ready-to-show', function () { return mainWindow.show(); });
     mainWindow.webContents.once('dom-ready', function () {
         electron_1.ipcMain.addListener(Channels_1.SHELL_CHANNEL_CODE, function (event, args) {
-            client.sendShellCommand(args, function (data) { return console.log(data); });
+            kernelConnection.sendShellCode(args);
+            // client.sendShellCommand(args, (data) => console.log(data))
         });
         electron_1.ipcMain.addListener(Channels_1.STDIN_CHANNEL_REPLY, function (event, args) {
-            client.sendStdinReply(args);
+            kernelConnection.sendStdInReply(args);
+            // client.sendStdinReply(args);
         });
         electron_1.ipcMain.addListener(Channels_1.KERNEL_INTERUPT_REQUEST, function (event) {
-            kernelProcess.kill('SIGINT');
+            kernelConnection.sendIntterupt();
+            // kernelProcess.kill('SIGINT');
         });
     });
     mainWindow.loadURL(isDev ? 'http://localhost:3000' : "file://" + path.join(__dirname, '../build/index.html'));
@@ -48,9 +49,9 @@ electron_1.app.on('window-all-closed', function () {
     // }
 });
 electron_1.app.on('quit', function () {
-    if (kernelProcess != null) {
+    if (kernelConnection && !kernelConnection.isClosed()) {
         console.log('killing python process');
-        kernelProcess.kill('SIGQUIT');
+        kernelConnection.close();
     }
 });
 electron_1.app.on('activate', function () {
@@ -59,51 +60,101 @@ electron_1.app.on('activate', function () {
     }
 });
 electron_1.ipcMain.addListener(Channels_1.OPEN_PROJECT, function (event, args) {
-    if (kernelProcess != null) {
-        console.log('killing python process');
-        kernelProcess.kill('SIGQUIT');
+    if (kernelConnection) {
+        kernelConnection.close();
     }
-    // TODO: make read this command from a config file
-    var command = [
-        args.pythonPath,
-        "-m",
-        "ipykernel_launcher",
-        "-f",
-        args.configPath,
-    ].join(" ");
-    var config = JSON.parse(fs.readFileSync(args.configPath).toString());
-    mainWindow.webContents.send(Channels_1.KERNEL_STATUS, (KernelStatus_1.KernelStatus.RUNNING));
-    kernelProcess = child_process_1.spawn(command, { shell: true });
-    kernelProcess.stdout.on('data', function (data) {
-        if (client == null) {
-            client = new zmq_jupyter_1.JupyterKernelClient(config);
-            client.getKernelInfo(function (data) {
-                mainWindow.webContents.send("kernel_info", data);
-            });
-            client.subscribeToIOLoop(function (data) {
-                mainWindow.webContents.send("io_pub_channel", data);
-            });
-            client.startSTDINLoop(function (data) {
-                mainWindow.webContents.send(Channels_1.STDIN_CHANNEL_REQUEST, data);
-            });
-        }
-    });
-    kernelProcess.stderr.on('data', function (data) {
-        console.log(data.toString('utf-8'));
-    });
-    kernelProcess.on('exit', function () {
-        if (!mainWindow) {
-            return;
-        }
-        mainWindow.webContents.send(Channels_1.KERNEL_STATUS, KernelStatus_1.KernelStatus.STOPPED);
-    });
-    kernelProcess.on('close', function () {
-        if (!mainWindow) {
-            return;
-        }
-        mainWindow.webContents.send(Channels_1.KERNEL_STATUS, KernelStatus_1.KernelStatus.STOPPED);
-    });
+    kernelConnection = new KernelConnection(args.pythonPath, args.configPath);
 });
+var KernelConnection = /** @class */ (function () {
+    function KernelConnection(pythonPath, configPath) {
+        var command = [
+            pythonPath,
+            "-m",
+            "ipykernel_launcher",
+            "-f",
+            configPath,
+        ].join(" ");
+        this.kernelProcess = child_process_1.spawn(command, { shell: true });
+        var config = JSON.parse(fs.readFileSync(configPath).toString());
+        this.client = new zmq_jupyter_1.JupyterKernelClient(config);
+        this.running = true;
+        this.init();
+        console.log('init-ed');
+    }
+    KernelConnection.prototype.init = function () {
+        var _this = this;
+        this.kernelProcess.stdout.on('data', function (data) {
+            console.log(data.toString('utf-8'));
+        });
+        this.kernelProcess.stderr.on('data', function (data) {
+            console.log(data.toString('utf-8'));
+        });
+        this.client.getKernelInfo(function (data) {
+            if (_this.running) {
+                mainWindow.webContents.send("kernel_info", data);
+            }
+        });
+        this.client.subscribeToIOLoop(function (data) {
+            if (_this.running) {
+                mainWindow.webContents.send("io_pub_channel", data);
+            }
+        });
+        this.client.startSTDINLoop(function (data) {
+            if (_this.running) {
+                mainWindow.webContents.send(Channels_1.STDIN_CHANNEL_REQUEST, data);
+            }
+        });
+        // this.heartbeatInterval = setInterval(() => {
+        //   let done = false;
+        //   let timeout = setTimeout(() => {
+        //     if (done) {
+        //       return;
+        //     }
+        //     mainWindow.webContents.send(KERNEL_STATUS, (KernelStatus.STOPPED));
+        //     done = true;
+        //   }, 1000);
+        //   this.client.checkHeartbeat((data) => {
+        //     if (done) {
+        //       return;
+        //     }
+        //     mainWindow.webContents.send(KERNEL_STATUS, (KernelStatus.RUNNING));
+        //     done = true;
+        //     clearTimeout(timeout);
+        //   });
+        // }, 100);
+        this.kernelProcess.on('exit', function () {
+            _this.disconnect();
+        });
+        this.kernelProcess.on('close', function () {
+            _this.disconnect();
+        });
+    };
+    KernelConnection.prototype.sendShellCode = function (args) {
+        this.client.sendShellCommand(args, function (data) { return console.log(data); });
+    };
+    KernelConnection.prototype.sendStdInReply = function (args) {
+        this.client.sendStdinReply(args);
+    };
+    KernelConnection.prototype.sendIntterupt = function () {
+        this.kernelProcess.kill("SIGINT");
+    };
+    KernelConnection.prototype.isClosed = function () {
+        return !this.running;
+    };
+    KernelConnection.prototype.close = function () {
+        this.kernelProcess.kill('SIGQUIT');
+        this.disconnect();
+    };
+    KernelConnection.prototype.disconnect = function () {
+        this.running = false;
+        // clearInterval(this.heartbeatInterval);
+        this.client.stop();
+        if (mainWindow) {
+            // mainWindow.webContents.send(KERNEL_STATUS, KernelStatus.STOPPED);
+        }
+    };
+    return KernelConnection;
+}());
 var template = [
     {
         label: "file",

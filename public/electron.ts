@@ -9,8 +9,7 @@ import * as fs from 'fs';
 import { JupyterKernelClient, KernelConfig } from 'zmq_jupyter';
 
 let mainWindow: any;
-let kernelProcess: ChildProcess;
-let client: JupyterKernelClient = null;
+let kernelConnection: KernelConnection;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -27,14 +26,16 @@ function createWindow() {
 
   mainWindow.webContents.once('dom-ready', () => {
     ipcMain.addListener(SHELL_CHANNEL_CODE, (event, args) => {
-      client.sendShellCommand(args, (data) => console.log(data))
+      kernelConnection.sendShellCode(args);
+      // client.sendShellCommand(args, (data) => console.log(data))
     });
     ipcMain.addListener(STDIN_CHANNEL_REPLY, (event, args) => {
-
-      client.sendStdinReply(args);
+      kernelConnection.sendStdInReply(args);
+      // client.sendStdinReply(args);
     });
     ipcMain.addListener(KERNEL_INTERUPT_REQUEST, (event) => {
-      kernelProcess.kill('SIGINT');
+      kernelConnection.sendIntterupt();
+      // kernelProcess.kill('SIGINT');
     });
   })
 
@@ -56,9 +57,9 @@ app.on('window-all-closed', () => {
 });
 
 app.on('quit', () => {
-  if (kernelProcess != null) {
+  if (kernelConnection && !kernelConnection.isClosed()) {
     console.log('killing python process')
-    kernelProcess.kill('SIGQUIT');
+    kernelConnection.close();
   }
 })
 
@@ -69,58 +70,126 @@ app.on('activate', () => {
 });
 
 ipcMain.addListener(OPEN_PROJECT, (event, args) => {
-  if (kernelProcess != null) {
-    console.log('killing python process')
-    kernelProcess.kill('SIGQUIT');
+  if (kernelConnection) {
+    kernelConnection.close();
   }
 
-  // TODO: make read this command from a config file
-  const command = [
-    args.pythonPath,
-    "-m",
-    "ipykernel_launcher",
-    "-f",
-    args.configPath,
-  ].join(" ");
-
-  const config: KernelConfig = JSON.parse(fs.readFileSync(args.configPath).toString());
-
-  mainWindow.webContents.send(KERNEL_STATUS, (KernelStatus.RUNNING));
-
-  kernelProcess = spawn(command, {shell: true});
-  kernelProcess.stdout.on('data', (data) => {
-    if (client == null) {
-      client = new JupyterKernelClient(config);
-      client.getKernelInfo((data) => {
-        mainWindow.webContents.send("kernel_info", data);
-      });
-      client.subscribeToIOLoop((data) => {
-        mainWindow.webContents.send("io_pub_channel", data)
-      });
-      client.startSTDINLoop((data) => {
-        mainWindow.webContents.send(STDIN_CHANNEL_REQUEST, data);
-      });
-    }
-  });
-
-  kernelProcess.stderr.on('data', (data) => {
-    console.log(data.toString('utf-8'));
-  })
-
-  kernelProcess.on('exit', () => {
-    if (!mainWindow) {
-      return;
-    }
-    mainWindow.webContents.send(KERNEL_STATUS, KernelStatus.STOPPED);
-  });
-
-  kernelProcess.on('close', () => {
-    if (!mainWindow) {
-      return;
-    }
-    mainWindow.webContents.send(KERNEL_STATUS, KernelStatus.STOPPED);
-  });
+  kernelConnection = new KernelConnection(args.pythonPath, args.configPath);
 });
+
+class KernelConnection {
+  kernelProcess: ChildProcess
+  client: JupyterKernelClient
+
+  heartbeatInterval: any;
+
+  running: boolean;
+
+  constructor(pythonPath: string, configPath: string) {
+    const command = [
+      pythonPath,
+      "-m",
+      "ipykernel_launcher",
+      "-f",
+      configPath,
+    ].join(" ");
+  
+    this.kernelProcess = spawn(command, {shell: true});
+
+    const config: KernelConfig = JSON.parse(fs.readFileSync(configPath).toString());
+    this.client = new JupyterKernelClient(config);
+     
+    this.running = true;
+
+    this.init();
+    console.log('init-ed');
+  }
+
+  init() {
+    this.kernelProcess.stdout.on('data', (data) => {
+      console.log(data.toString('utf-8'));
+    });
+
+    this.kernelProcess.stderr.on('data', (data) => {
+      console.log(data.toString('utf-8'));
+    });
+
+    this.client.getKernelInfo((data) =>  {
+      if (this.running) {
+        mainWindow.webContents.send("kernel_info", data);
+      }
+    });
+
+    this.client.subscribeToIOLoop((data) => {
+      if (this.running) {
+        mainWindow.webContents.send("io_pub_channel", data)
+      }
+    });
+
+    this.client.startSTDINLoop((data) => {
+      if (this.running) {
+        mainWindow.webContents.send(STDIN_CHANNEL_REQUEST, data);
+      }
+    });
+
+    // this.heartbeatInterval = setInterval(() => {
+    //   let done = false;
+    //   let timeout = setTimeout(() => {
+    //     if (done) {
+    //       return;
+    //     }
+    //     mainWindow.webContents.send(KERNEL_STATUS, (KernelStatus.STOPPED));
+    //     done = true;
+    //   }, 1000);
+    //   this.client.checkHeartbeat((data) => {
+    //     if (done) {
+    //       return;
+    //     }
+    //     mainWindow.webContents.send(KERNEL_STATUS, (KernelStatus.RUNNING));
+    //     done = true;
+    //     clearTimeout(timeout);
+    //   });
+    // }, 100);
+
+    this.kernelProcess.on('exit', () => {
+      this.disconnect();
+    });
+  
+    this.kernelProcess.on('close', () => {
+      this.disconnect();
+    });
+  }
+
+  sendShellCode(args: any) {
+    this.client.sendShellCommand(args, (data) => console.log(data))
+  }
+
+  sendStdInReply(args: any) {
+    this.client.sendStdinReply(args);
+  }
+
+  sendIntterupt() {
+    this.kernelProcess.kill("SIGINT");
+  }
+
+  isClosed() {
+    return !this.running;
+  }
+
+  close() {
+    this.kernelProcess.kill('SIGQUIT');
+    this.disconnect();
+  }
+
+  disconnect() {
+    this.running = false;
+    // clearInterval(this.heartbeatInterval);
+    this.client.stop();
+    if (mainWindow) {
+      // mainWindow.webContents.send(KERNEL_STATUS, KernelStatus.STOPPED);
+    }
+  }
+}
 
 
 const template: MenuItemConstructorOptions[] = [

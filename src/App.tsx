@@ -40,7 +40,7 @@ class App extends Component {
     this.messagingService = new JupyterMessagingService(ipcRenderer);
 
     this.state = {
-      active: KernelStatus.STOPPED
+      active: KernelStatus.RUNNING
     };
     this.projectDir = '';
 
