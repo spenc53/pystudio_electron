@@ -2,6 +2,7 @@ import React from 'react';
 import ColoredMessage from '../models/ColoredMessage';
 import { KernelState } from '../constants/KernelState';
 import JupyterMessagingService from '../services/JupyterMessagingService';
+import { KernelStatus } from '../constants/KernelStatus';
 
 export type TerminalProps = {
   messagingService: JupyterMessagingService;
@@ -11,6 +12,7 @@ class Terminal extends React.Component<TerminalProps> {
   state: {
     data: ColoredMessage[][],
     executionState: KernelState;
+    kernelStatus: KernelStatus
   };
 
   execution_count = 0;
@@ -31,7 +33,8 @@ class Terminal extends React.Component<TerminalProps> {
 
     this.state = {
       data: [],
-      executionState: KernelState.IDLE
+      executionState: KernelState.IDLE,
+      kernelStatus: KernelStatus.STOPPED
     };
 
     this.endofInput = React.createRef();
@@ -46,6 +49,13 @@ class Terminal extends React.Component<TerminalProps> {
 
     this.jupyterMessagingService.subscribeToPubIoChannel(this.parsePubChannel);
     this.jupyterMessagingService.subscribeToInputChannel(this.parseInputRequest);
+
+    this.jupyterMessagingService.getStatus().subscribe((kernelStatus: KernelStatus) => {
+      console.log(kernelStatus)
+      this.setState({
+        kernelStatus: kernelStatus
+      });
+    });
   }
 
   parsePubChannel(args: any) {
@@ -218,8 +228,8 @@ class Terminal extends React.Component<TerminalProps> {
         <span style={{ display: 'table-cell', color: "blue" }}>
           IN[{this.execution_count}]:{'\t'}
         </span>
-        <span style={{ display: 'table-cell', width: '100%' }}>
-          <input onKeyDown={this._handleKeyDown} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
+        <span style={{ display: 'table-cell', width: '100%', overflow: 'hidden' }}>
+          <input disabled={this.state.kernelStatus===KernelStatus.STOPPED} onKeyDown={this._handleKeyDown} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
         </span>
       </div>
     )

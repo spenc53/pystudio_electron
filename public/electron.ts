@@ -70,7 +70,7 @@ app.on('activate', () => {
 });
 
 ipcMain.addListener(OPEN_PROJECT, (event, args) => {
-  if (kernelConnection) {
+  if (kernelConnection && !kernelConnection.isClosed()) {
     kernelConnection.close();
   }
 
@@ -102,7 +102,6 @@ class KernelConnection {
     this.running = true;
 
     this.init();
-    console.log('init-ed');
   }
 
   init() {
@@ -131,6 +130,8 @@ class KernelConnection {
         mainWindow.webContents.send(STDIN_CHANNEL_REQUEST, data);
       }
     });
+
+    mainWindow.webContents.send(KERNEL_STATUS, (KernelStatus.RUNNING));
 
     // this.heartbeatInterval = setInterval(() => {
     //   let done = false;
@@ -182,12 +183,12 @@ class KernelConnection {
   }
 
   disconnect() {
-    this.running = false;
-    // clearInterval(this.heartbeatInterval);
-    this.client.stop();
-    if (mainWindow) {
-      // mainWindow.webContents.send(KERNEL_STATUS, KernelStatus.STOPPED);
+    if (mainWindow && this.running) {
+      mainWindow.webContents.send(KERNEL_STATUS, KernelStatus.STOPPED);
     }
+    this.running = false;
+    console.log('STOPPED');
+    this.client.stop();
   }
 }
 

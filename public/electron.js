@@ -4,6 +4,7 @@ var electron_1 = require("electron");
 var path = require("path");
 var isDev = require("electron-is-dev");
 var Channels_1 = require("../src/constants/Channels");
+var KernelStatus_1 = require("../src/constants/KernelStatus");
 var child_process_1 = require("child_process");
 var fs = require("fs");
 var zmq_jupyter_1 = require("zmq_jupyter");
@@ -60,7 +61,7 @@ electron_1.app.on('activate', function () {
     }
 });
 electron_1.ipcMain.addListener(Channels_1.OPEN_PROJECT, function (event, args) {
-    if (kernelConnection) {
+    if (kernelConnection && !kernelConnection.isClosed()) {
         kernelConnection.close();
     }
     kernelConnection = new KernelConnection(args.pythonPath, args.configPath);
@@ -79,7 +80,6 @@ var KernelConnection = /** @class */ (function () {
         this.client = new zmq_jupyter_1.JupyterKernelClient(config);
         this.running = true;
         this.init();
-        console.log('init-ed');
     }
     KernelConnection.prototype.init = function () {
         var _this = this;
@@ -104,6 +104,7 @@ var KernelConnection = /** @class */ (function () {
                 mainWindow.webContents.send(Channels_1.STDIN_CHANNEL_REQUEST, data);
             }
         });
+        mainWindow.webContents.send(Channels_1.KERNEL_STATUS, (KernelStatus_1.KernelStatus.RUNNING));
         // this.heartbeatInterval = setInterval(() => {
         //   let done = false;
         //   let timeout = setTimeout(() => {
@@ -146,12 +147,12 @@ var KernelConnection = /** @class */ (function () {
         this.disconnect();
     };
     KernelConnection.prototype.disconnect = function () {
-        this.running = false;
-        // clearInterval(this.heartbeatInterval);
-        this.client.stop();
-        if (mainWindow) {
-            // mainWindow.webContents.send(KERNEL_STATUS, KernelStatus.STOPPED);
+        if (mainWindow && this.running) {
+            mainWindow.webContents.send(Channels_1.KERNEL_STATUS, KernelStatus_1.KernelStatus.STOPPED);
         }
+        this.running = false;
+        console.log('STOPPED');
+        this.client.stop();
     };
     return KernelConnection;
 }());

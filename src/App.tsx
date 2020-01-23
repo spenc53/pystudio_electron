@@ -6,6 +6,7 @@ import SplitPane from './splitpane/SplitPane';
 import { IpcRenderer, Remote, Dialog } from 'electron';
 import { OPEN_PROJECT, KERNEL_STATUS } from './constants/Channels';
 import Terminal from './terminal';
+import HorizontalSplitPane from './horizontalSplitPane';
 import JupyterMessagingService from './services/JupyterMessagingService';
 import { KernelStatus } from './constants/KernelStatus';
 
@@ -40,7 +41,7 @@ class App extends Component {
     this.messagingService = new JupyterMessagingService(ipcRenderer);
 
     this.state = {
-      active: KernelStatus.RUNNING
+      active: KernelStatus.STOPPED
     };
     this.projectDir = '';
 
@@ -64,17 +65,22 @@ class App extends Component {
     const { active } = this.state;
     return (
       <div style={{ height: '100vh' }}>
-        <SplitPane >
-          <SplitPane.Top>
-            {this.file()}
-          </SplitPane.Top>
-          <SplitPane.Bottom>
-            { active === KernelStatus.STOPPED ?  
-              null :
-              <Terminal messagingService={this.messagingService}></Terminal>
-            }
-          </SplitPane.Bottom>
-        </SplitPane>
+        <HorizontalSplitPane>
+          <HorizontalSplitPane.Left>
+            <SplitPane>
+              <SplitPane.Top>
+                {this.file()}
+              </SplitPane.Top>
+              <SplitPane.Bottom>
+                <Terminal messagingService={this.messagingService}></Terminal>
+              </SplitPane.Bottom>
+            </SplitPane>
+          </HorizontalSplitPane.Left>
+          <HorizontalSplitPane.Right>
+            <div>right</div>
+          </HorizontalSplitPane.Right>
+        </HorizontalSplitPane>
+        
       </div>
     );
   }

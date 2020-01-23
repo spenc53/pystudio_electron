@@ -1,5 +1,7 @@
 import { IpcRenderer } from "electron";
-import { SHELL_CHANNEL_CODE, KERNEL_INTERUPT_REQUEST, STDIN_CHANNEL_REQUEST, STDIN_CHANNEL_REPLY } from "../constants/Channels";
+import { SHELL_CHANNEL_CODE, KERNEL_INTERUPT_REQUEST, STDIN_CHANNEL_REQUEST, STDIN_CHANNEL_REPLY, KERNEL_STATUS } from "../constants/Channels";
+import { KernelStatus } from "../constants/KernelStatus";
+import { Subject } from 'rxjs';
 
 class JupyterMessagingService {
     ipcRenderer: IpcRenderer;
@@ -8,8 +10,14 @@ class JupyterMessagingService {
     ioPubSubscribers: recieve[] = [];
     stdInSubscribers: recieve[] = [];
 
+    // kernelStatus: KernelStatus;
+    kernelStatusSubject: Subject<KernelStatus>;
+
     constructor(ipcRenderer: IpcRenderer) {
         this.ipcRenderer = ipcRenderer;
+        // this.kernelStatus = KernelStatus.STOPPED;
+        this.kernelStatusSubject = new Subject();
+        this.kernelStatusSubject.next(KernelStatus.STOPPED);
     
         ipcRenderer.on("kernel_info", (event, args) => {
             // this.setState({
@@ -33,6 +41,10 @@ class JupyterMessagingService {
             this.stdInSubscribers.forEach(recieve => {
                 recieve(args);
             })
+        });
+
+        ipcRenderer.on(KERNEL_STATUS, (event, args) => {
+            this.kernelStatusSubject.next(args);
         });
     }
 
@@ -60,7 +72,9 @@ class JupyterMessagingService {
         this.stdInSubscribers.push(recieveFunc);
     }
 
-    
+    getStatus() {
+        return this.kernelStatusSubject.asObservable();
+    }
     
 }
 
