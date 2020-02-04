@@ -12,7 +12,8 @@ class Terminal extends React.Component<TerminalProps> {
   state: {
     data: ColoredMessage[][],
     executionState: KernelState;
-    kernelStatus: KernelStatus
+    kernelStatus: KernelStatus;
+    input: string[];
   };
 
   execution_count = 0;
@@ -34,7 +35,8 @@ class Terminal extends React.Component<TerminalProps> {
     this.state = {
       data: [],
       executionState: KernelState.IDLE,
-      kernelStatus: KernelStatus.STOPPED
+      kernelStatus: KernelStatus.STOPPED,
+      input: []
     };
 
     this.endofInput = React.createRef();
@@ -42,6 +44,7 @@ class Terminal extends React.Component<TerminalProps> {
     // set up
     this.terminal = this.terminal.bind(this);
     this.Input = this.Input.bind(this);
+    this._handlePaste = this._handlePaste.bind(this);
 
     // setup subscribers
     this.parsePubChannel = this.parsePubChannel.bind(this);
@@ -73,14 +76,26 @@ class Terminal extends React.Component<TerminalProps> {
       }
       this.setState({
         executionState: args['execution_state'].toUpperCase()
-      })
+      });
     } else if ('data' in args) {
       // parse the data
       this.parseData(args['data'])
     } else if ('code' in args) {
-      const output = 'IN[' + this.execution_count + ']: ' + args['code'];
+      const codeLines = args['code'].split("\n");
+      const response = [];
+      for (let i = 0; i < codeLines.length; i++) {
+        if (i === 0) {
+          let output = 'IN[' + this.execution_count + ']:\t' + codeLines[i];
+          response.push([new ColoredMessage(output, 'black')])
+          continue;
+        }
+
+        let output = '...:\t' + codeLines[i];
+        response.push([new ColoredMessage(output, 'black')])
+      }
+      // const output = 'IN[' + this.execution_count + ']: ' + args['code'];
       this.setState({
-        data: this.state.data.concat([[new ColoredMessage(output, 'black')]])
+        data: this.state.data.concat(response)
       })
       if (args['code'] === '') {
         this.execution_count -= 1;
@@ -92,6 +107,14 @@ class Terminal extends React.Component<TerminalProps> {
       const messages = [];
       for (const text of args['text'].split("\n")) {
         messages.push([new ColoredMessage(text, 'black')])
+      }
+      this.setState({
+        data: this.state.data.concat(messages)
+      })
+    } else if ('name' in args && args['name'] === 'stderr') {
+      const messages = [];
+      for (const text of args['text'].split("\n")) {
+        messages.push([new ColoredMessage(text, 'red')])
       }
       this.setState({
         data: this.state.data.concat(messages)
@@ -156,18 +179,64 @@ class Terminal extends React.Component<TerminalProps> {
     const charCode = String.fromCharCode(e.which).toLowerCase();
     const code = e.target.value;
 
-    if (e.key === 'Enter' && this.state.executionState === KernelState.INPUT) {
-      this.jupyterMessagingService.sendInputReply(code);
+    if (e.ctrlKey && e.key === 'Enter') {
+      if (!code.trim()) {
+        return;
+      }
+      this.setState({
+        input: this.state.input.concat(code)
+      });
       e.target.value = "";
+      return;
+    } else if (e.key === 'Enter' && this.state.executionState === KernelState.INPUT) {
+      const allCode = this.state.input.join('\n') + '\n' + code;
+      this.jupyterMessagingService.sendInputReply(allCode);
+      e.target.value = "";
+      this.setState({
+        input: []
+      });
     } else if (e.key === 'Enter' && this.state.executionState === KernelState.IDLE) {
-      this.jupyterMessagingService.sendShellChannelCode(code);
+      let allCode = this.state.input.join("\n");
+      if (!allCode.trim()) {
+        allCode = code;
+      } else {
+        allCode = allCode + "\n" + code;
+      }
+
+      if (!allCode.trim()) {
+        return;
+      }
+
+      this.jupyterMessagingService.sendShellChannelCode(allCode);
       e.target.value = "";
+      this.setState({
+        input: []
+      });
     } else if (e.ctrlKey && charCode === 'c' && this.state.executionState === KernelState.BUSY) {
       console.log("Ctrl + C pressed");
       this.jupyterMessagingService.sendKernelInterrupt();
       e.target.value = "";
+      this.setState({
+        input: []
+      });
     }
 
+  }
+
+  _handlePaste(e: any) {
+    e.preventDefault()
+    const text = e.clipboardData.getData('Text');
+    console.log(text);
+    const data = text.split("\n");
+    if (data.length === 1 && !data[0].trim()) {
+      return;
+    }
+    const lastInput = data[data.length - 1];
+    const pastedData = data.slice(0, -1);
+    this.setState({
+      input: this.state.input.concat(pastedData)
+    })
+    e.target.value += lastInput;
   }
 
   render() {
@@ -193,8 +262,8 @@ class Terminal extends React.Component<TerminalProps> {
               );
             })}
             <div ref={this.endofInput}></div>
+            <this.Input></this.Input>
           </div>
-          <this.Input></this.Input>
         </div>
       </div>
     )
@@ -223,16 +292,78 @@ class Terminal extends React.Component<TerminalProps> {
       )
     }
 
+    let input = this.state.input;
     return (
-      <div className='cursor'>
-        <span style={{ display: 'table-cell', color: "blue" }}>
-          IN[{this.execution_count}]:{'\t'}
-        </span>
-        <span style={{ display: 'table-cell', width: '100%', overflow: 'hidden' }}>
-          <input disabled={this.state.kernelStatus===KernelStatus.STOPPED} onKeyDown={this._handleKeyDown} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
-        </span>
+      <div>
+        { input.length == 0 ?
+        ( null
+
+        ) :
+        (
+          <div>
+            {
+              input.map((code: string, index: number) => {
+                return (
+                  <div>
+                    {
+                      index === 0 ? 
+                      (
+                        <span style={{ display: 'table-cell', color: "blue" }}>
+                          IN[{this.execution_count}]:{'\t'}
+                        </span>
+                      ):
+                      (
+                        <span style={{ display: 'table-cell', color: "blue" }}>
+                          ...:{'\t'}
+                        </span>
+                      )
+                    }
+                    <span style={{ display: 'table-cell', width: '100%', overflow: 'hidden' }}>
+                      {code}
+                    </span>
+                  </div>
+                )
+              })
+            }
+            {/* <span style={{ display: 'table-cell', color: "blue" }}>
+              IN[{this.execution_count}]:{'\t'}
+            </span>
+            <span style={{ display: 'table-cell', width: '100%', overflow: 'hidden' }}>
+              temp
+            </span> */}
+          </div>
+        )}
+        <div className='cursor'>
+          {
+            input.length === 0 ? 
+            (
+              <span style={{ display: 'table-cell', color: "blue" }}>
+                IN[{this.execution_count}]:{'\t'}
+              </span>
+            ):
+            (
+              <span style={{ display: 'table-cell', color: "blue" }}>
+                ...:{'\t'}
+              </span>
+            )
+          }
+          <span style={{ display: 'table-cell', width: '100%', overflow: 'hidden' }}>
+            <input disabled={this.state.kernelStatus===KernelStatus.STOPPED} onKeyDown={this._handleKeyDown} onPasteCapture={this._handlePaste} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
+          </span>
+        </div>
       </div>
     )
+
+    // return (
+    //   <div className='cursor'>
+    //     <span style={{ display: 'table-cell', color: "blue" }}>
+    //       IN[{this.execution_count}]:{'\t'}
+    //     </span>
+    //     <span style={{ display: 'table-cell', width: '100%', overflow: 'hidden' }}>
+    //       <input disabled={this.state.kernelStatus===KernelStatus.STOPPED} onKeyDown={this._handleKeyDown} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
+    //     </span>
+    //   </div>
+    // )
 
   }
 }

@@ -5,6 +5,7 @@ import SplitPane from './splitpane/SplitPane';
 
 import { IpcRenderer, Remote, Dialog } from 'electron';
 import { OPEN_PROJECT, KERNEL_STATUS } from './constants/Channels';
+import Plot from './plot';
 import Terminal from './terminal';
 import HorizontalSplitPane from './horizontalSplitPane';
 import JupyterMessagingService from './services/JupyterMessagingService';
@@ -77,7 +78,8 @@ class App extends Component {
             </SplitPane>
           </HorizontalSplitPane.Left>
           <HorizontalSplitPane.Right>
-            <div>right</div>
+            <Plot messagingService={this.messagingService}></Plot>
+            {/* <div>right</div> */}
           </HorizontalSplitPane.Right>
         </HorizontalSplitPane>
         
