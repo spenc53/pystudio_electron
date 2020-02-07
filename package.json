@@ -20,7 +20,7 @@
     "typeface-roboto": "0.0.75",
     "typescript": "^3.7.3",
     "zeromq": "^6.0.0-beta.5",
-    "zmq_jupyter": "file:../node_stuff/zmq_jupyter"
+    "zmq_jupyter": "^1.0.0"
   },
   "build": {
     "files": [
