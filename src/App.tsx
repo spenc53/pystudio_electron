@@ -4,9 +4,10 @@ import './App.css';
 import SplitPane from './splitpane/SplitPane';
 
 import { IpcRenderer, Remote, Dialog } from 'electron';
-import { OPEN_PROJECT, KERNEL_STATUS } from './constants/Channels';
+import { OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from './constants/Channels';
 import Plot from './plot';
 import Terminal from './terminal';
+import Modal from './modal';
 import HorizontalSplitPane from './horizontalSplitPane';
 import JupyterMessagingService from './services/JupyterMessagingService';
 import { KernelStatus } from './constants/KernelStatus';
@@ -31,7 +32,8 @@ class App extends Component {
   messagingService: JupyterMessagingService;
 
   state: {
-    active: KernelStatus
+    active: KernelStatus,
+    showLoading: boolean
   };
 
   projectDir: string;
@@ -42,20 +44,36 @@ class App extends Component {
     this.messagingService = new JupyterMessagingService(ipcRenderer);
 
     this.state = {
-      active: KernelStatus.STOPPED
+      active: KernelStatus.STOPPED,
+      showLoading: false
     };
     this.projectDir = '';
 
     this.openPystudioProject = this.openPystudioProject.bind(this);
 
-    ipcRenderer.on(OPEN_PROJECT, (event) => {
-      const data = dialog.showOpenDialogSync({properties: ['openDirectory']});
-      if (!data || data.length === 0) return;
-
-      this.openPystudioProject(data[0]);
+    ipcRenderer.on(OPEN_PROJECT, (event, args) => {
+      this.setState({
+        showLoading: true
+      })
+      this.openPystudioProject(args);
     });
 
+    ipcRenderer.on(LOADING_PROJECT_CHANNEL, (event, args) => {
+      const isDone = args.isDone;
+      const isError = args.isError;
+      const message = args.message;
+
+      this.setState({
+        showLoading: !isDone
+      })
+    })
+
     ipcRenderer.on(KERNEL_STATUS, (event, args) => {
+      if (args === KernelStatus.RUNNING && this.state.showLoading) {
+        this.setState({
+          showLoading: false
+        })
+      }
       this.setState({
         active: args
       });
@@ -66,6 +84,11 @@ class App extends Component {
     const { active } = this.state;
     return (
       <div style={{ height: '100vh' }}>
+        <Modal show={this.state.showLoading} onClick={() => {console.log('background clicked')}}>
+          <div style={{textAlign: 'center'}}>
+            Opening Project
+          </div>
+        </Modal>
         <HorizontalSplitPane>
           <HorizontalSplitPane.Left>
             <SplitPane>
@@ -82,7 +105,6 @@ class App extends Component {
             {/* <div>right</div> */}
           </HorizontalSplitPane.Right>
         </HorizontalSplitPane>
-        
       </div>
     );
   }
@@ -122,7 +144,7 @@ class App extends Component {
       configPath: pathToProject + "/.pystudio/ipython_config.json"
     });
   }
-
+  
 }
 
 export default App;

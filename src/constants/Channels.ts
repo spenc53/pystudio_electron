@@ -8,6 +8,8 @@ export const STDIN_CHANNEL_REQUEST = "std_in_channel"; // request from server
 export const STDIN_CHANNEL_REPLY = "std_in_channel_return"; // reply from client
 export const KERNEL_INTERUPT_REQUEST = "kernel_interrupt_request";
 
+export const LOADING_PROJECT_CHANNEL = "loading_project_channel";
+
 export const OPEN_PROJECT = "open_project";
 export const START_IPYTHON_PROCESS = "start_ipython_process";
 

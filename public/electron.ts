@@ -1,9 +1,9 @@
 import { app, dialog, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain } from 'electron';
 import * as path from 'path';
 import * as isDev from 'electron-is-dev';
-import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT, KERNEL_STATUS } from '../src/constants/Channels';
+import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from '../src/constants/Channels';
 import { KernelStatus } from '../src/constants/KernelStatus';
-import { spawn, ChildProcess } from 'child_process';
+import { spawnSync, spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 
 import { JupyterKernelClient, KernelConfig } from 'zmq_jupyter';
@@ -195,12 +195,89 @@ class KernelConnection {
 
 const template: MenuItemConstructorOptions[] = [
   {
-    label: "file",
+    label: "File",
     submenu: [
       {
         label: 'Open Project',
         click() {
-          mainWindow.webContents.send(OPEN_PROJECT)
+          const data = dialog.showOpenDialogSync({properties: ['openDirectory']});
+          if (!data || data.length === 0) return;
+          mainWindow.webContents.send(OPEN_PROJECT, data[0]);
+        }
+      },
+      {
+        label: 'New Project',
+        click() {
+          const dirs = dialog.showOpenDialogSync({ properties: ['openDirectory']});
+          
+          if (!dirs || dirs.length === 0) {
+            return;
+          }
+
+          const dir = dirs[0];
+
+          if (fs.existsSync(dir + "/" + ".pystudio")) {
+            dialog.showErrorBox("Project already exists", "A project already exists in this folder. Try opening it instead")
+            return;
+          }
+          
+          const setupPromise = new Promise(async (resolve, reject) => {
+            mainWindow.webContents.send(LOADING_PROJECT_CHANNEL, {
+              message: 'Creating new Project',
+              isError: false,
+              isDone: false
+            });
+
+            // initialize it
+            fs.mkdirSync(dir + "/" + ".pystudio")
+            fs.writeFileSync(dir + "/" + ".pystudio/config.json", JSON.stringify(config));
+            fs.writeFileSync(dir + "/" + ".pystudio/ipython_config.json", JSON.stringify(pykernelConfig)); 
+
+            const envSetupProcess = spawn("python3", ["-m", "venv", dir + "/" + "env"]);
+            envSetupProcess.on('error', () => {
+              reject('Could not setup python process');
+            });
+
+            envSetupProcess.on('exit', (code: number) => {
+              if (code !== 0) {
+                reject('Non zero exit: ' + code);
+                return;
+              } 
+
+              const envInstall = spawn(dir + "/" + "env/bin/pip", ["install", "ipykernel", "matplotlib"]);
+              envInstall.on('error', () => {
+                reject('Could not setup python process');
+              });
+
+              envInstall.on('exit', (code: number) => {
+                if (code !== 0) {
+                  reject('Non zero exit: ' + code);
+                  return;
+                }
+                resolve('');
+              });
+            })
+          });
+
+          setupPromise.then((value: any) => {
+            mainWindow.webContents.send(OPEN_PROJECT, dir);
+          });
+
+          setupPromise.catch((error: any) => {
+            console.log(error);
+            mainWindow.webContents.send(LOADING_PROJECT_CHANNEL, {
+              message: "Error creating python project",
+              isDone: true,
+              isError: true
+            })
+            dialog.showErrorBox("Python Error", "Error making python virutal env")
+          });
+        }
+      },
+      {
+        label: 'Test load',
+        click() {
+          
         }
       }
     ]
@@ -256,3 +333,22 @@ if (process.platform === 'darwin') {
 }
 
 Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+
+
+const config = {
+  "env_name": "env",
+  "config_name": "ipython_config"
+}
+
+const pykernelConfig = {
+  "shell_port": 53794,
+  "iopub_port": 53795,
+  "stdin_port": 53796,
+  "control_port": 53797,
+  "hb_port": 53798,
+  "ip": "127.0.0.1",
+  "key": "",
+  "transport": "tcp",
+  "signature_scheme": "hmac-sha256",
+  "kernel_name": ""
+}
