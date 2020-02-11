@@ -41,14 +41,17 @@ class Plot extends React.Component<PlotProps> {
         if (this.state.plots.length >= 1) {
             return (
                 <div>
-                    {this.state.plots[this.state.plots.length - 1]}
+                    <div style={{textAlign:"center"}}>Plots</div>
+                    <div>
+                        {this.state.plots[this.state.plots.length - 1]}
+                    </div>
                 </div>
             )
         }
 
         return (
             <div>
-                
+                <div style={{textAlign:"center"}}>Plots</div>
             </div>
         )
     }

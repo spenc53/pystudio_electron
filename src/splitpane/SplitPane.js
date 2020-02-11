@@ -42,7 +42,8 @@ export default function SplitPane({ children, ...props }) {
     <div {...props} className="split-pane" ref={splitPaneRef}>
       <splitPaneContext.Provider value={{ topHeight, setTopHeight }}>
         {children[0]}
-        <div className="separator" onMouseDown={onMouseDown} />
+        <div className="separator" onMouseDown={onMouseDown}>
+        </div>
         {children[1]}
       </splitPaneContext.Provider>
     </div>

@@ -93,7 +93,7 @@ class App extends Component {
           <HorizontalSplitPane.Left>
             <SplitPane>
               <SplitPane.Top>
-                {this.file()}
+                {/* {this.file()} */}
               </SplitPane.Top>
               <SplitPane.Bottom>
                 <Terminal messagingService={this.messagingService}></Terminal>
@@ -101,8 +101,15 @@ class App extends Component {
             </SplitPane>
           </HorizontalSplitPane.Left>
           <HorizontalSplitPane.Right>
-            <Plot messagingService={this.messagingService}></Plot>
-            {/* <div>right</div> */}
+            <SplitPane>
+              <SplitPane.Top>
+                {/* {this.file()} */}
+              </SplitPane.Top>
+              <SplitPane.Bottom>
+                <Plot messagingService={this.messagingService}></Plot>
+              </SplitPane.Bottom>
+            </SplitPane>
+            
           </HorizontalSplitPane.Right>
         </HorizontalSplitPane>
       </div>

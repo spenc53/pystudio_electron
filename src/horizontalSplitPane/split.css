@@ -21,6 +21,6 @@
 }
 
 .separator-width {
-    border: 5px solid black;
+    border: 5px solid grey;
     cursor: col-resize;
 }

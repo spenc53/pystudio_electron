@@ -209,11 +209,6 @@ var template = [
                 label: 'New Project',
                 click: function () {
                     var _this = this;
-                    mainWindow.webContents.send(Channels_1.LOADING_PROJECT_CHANNEL, {
-                        message: 'Creating new Project',
-                        isError: false,
-                        isDone: false
-                    });
                     var dirs = electron_1.dialog.showOpenDialogSync({ properties: ['openDirectory'] });
                     if (!dirs || dirs.length === 0) {
                         return;
@@ -226,6 +221,11 @@ var template = [
                     var setupPromise = new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
                         var envSetupProcess;
                         return __generator(this, function (_a) {
+                            mainWindow.webContents.send(Channels_1.LOADING_PROJECT_CHANNEL, {
+                                message: 'Creating new Project',
+                                isError: false,
+                                isDone: false
+                            });
                             // initialize it
                             fs.mkdirSync(dir + "/" + ".pystudio");
                             fs.writeFileSync(dir + "/" + ".pystudio/config.json", JSON.stringify(config));
