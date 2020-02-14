@@ -8,6 +8,7 @@ import { OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from './constant
 import Plot from './plot';
 import Terminal from './terminal';
 import Modal from './modal';
+import CodeEditor from "./components/codeEditor";
 import HorizontalSplitPane from './horizontalSplitPane';
 import JupyterMessagingService from './services/JupyterMessagingService';
 import { KernelStatus } from './constants/KernelStatus';
@@ -91,7 +92,7 @@ class App extends Component {
           <HorizontalSplitPane.Left>
             <SplitPane>
               <SplitPane.Top>
-                {/* {this.file()} */}
+                <CodeEditor></CodeEditor>
               </SplitPane.Top>
               <SplitPane.Bottom>
                 <Terminal messagingService={this.messagingService}></Terminal>
