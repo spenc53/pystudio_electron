@@ -11,7 +11,7 @@ require('brace/mode/python');
 require('brace/theme/xcode');
 
 class CodeEditor extends React.Component {
-
+    
     render() {
         return(
             <div>
@@ -19,6 +19,7 @@ class CodeEditor extends React.Component {
                     mode="python"
                     theme="xcode"
                     name="UNIQUE_ID_OF_DIV"
+                    value="Hello World!" /* Load python script and load up value here */
                     editorProps={{
                     $blockScrolling: true
                     }}
