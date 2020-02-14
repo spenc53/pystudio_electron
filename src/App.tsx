@@ -3,7 +3,7 @@ import './App.css';
 
 import SplitPane from './splitpane/SplitPane';
 
-import { IpcRenderer, Remote, Dialog } from 'electron';
+import { IpcRenderer, Dialog, Remote } from 'electron';
 import { OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from './constants/Channels';
 import Plot from './plot';
 import Terminal from './terminal';
@@ -11,20 +11,20 @@ import Modal from './modal';
 import HorizontalSplitPane from './horizontalSplitPane';
 import JupyterMessagingService from './services/JupyterMessagingService';
 import { KernelStatus } from './constants/KernelStatus';
+import ProjectState from './project/ProjectState';
 
 declare global {
   interface Window {
     require: (module: 'electron') => {
       ipcRenderer: IpcRenderer,
-      remote: Remote,
+      remote: Remote
     }
   }
 }
 
 const fs = window.require('fs');
 
-const { ipcRenderer, remote } = window.require('electron');
-
+const { ipcRenderer } = window.require('electron');
 
 class App extends Component {
 
@@ -148,6 +148,7 @@ class App extends Component {
       pythonPath: pathToProject + "/" + envFolder + "/bin/python",
       configPath: pathToProject + "/.pystudio/ipython_config.json"
     });
+    ProjectState.getInstance()?.setProjectPath(pathToProject);
   }
   
 }

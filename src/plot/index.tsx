@@ -5,6 +5,14 @@ import { ReactComponent as Before } from './navigate_before-24px.svg';
 import { ReactComponent as Save } from './save_alt-24px.svg';
 import ImageButton from '../imageButton';
 
+import { Dialog } from 'electron';
+import ProjectState from '../project/ProjectState';
+
+// const fs = window.require('fs');
+
+const { dialog } = window.require('electron').remote;
+const fs = window.require('fs');
+
 export type PlotProps = {
   messagingService: JupyterMessagingService;
 }
@@ -27,6 +35,7 @@ class Plot extends React.Component<PlotProps> {
 
         this.parsePubChannel = this.parsePubChannel.bind(this);
         this.getCurrentPlot = this.getCurrentPlot.bind(this);
+        this.saveImage = this.saveImage.bind(this);
 
         this.messagingService.subscribeToPubIoChannel(this.parsePubChannel);
     }
@@ -34,16 +43,36 @@ class Plot extends React.Component<PlotProps> {
     parsePubChannel(args: any) {
         if ('data' in args) {
             let data = args['data'];
-            if ('image/png' in data) {
-                const imageData = "data:image/png;base64," + data['image/png'];
-                const image = (<img src={imageData} alt="Graph" />)
-                const plots = this.state.plots.concat(image)
-                this.setState({
-                    plots: plots,
-                    currIndex: plots.length - 1 
-                })
-            }
+            
+            const plots = this.state.plots.concat(data)
+            this.setState({
+                plots: plots,
+                currIndex: plots.length - 1
+            })
         }
+    }
+
+    saveImage() {
+        const savePath = dialog.showSaveDialogSync({
+            title: "Save plot",
+            defaultPath: ProjectState.getInstance()?.getProjectPath() || ""
+        });
+
+        if (!savePath) return;
+
+        const plotData = this.state.plots[this.state.currIndex];
+
+        if ('image/png' in plotData) {
+            const imageData = "data:image/png;base64," + plotData['image/png'];
+
+            let base64String = imageData; 
+            let base64Image = base64String.split(';base64,').pop();
+
+            fs.writeFile(savePath + '.png', base64Image, {encoding: 'base64'}, function(err: any) {
+                console.log('File created')
+            });
+        }
+        
     }
 
     render() {
@@ -80,7 +109,7 @@ class Plot extends React.Component<PlotProps> {
                         />
                     </ImageButton>
                     <div style={{borderLeft: "1px solid grey", marginLeft: "3px", marginTop: "3px", marginBottom: "3px"}}></div>
-                    <ImageButton disabled={maxLength === 0} style={{borderRadius:"4px", marginLeft: "3px"}}>
+                    <ImageButton onClick={this.saveImage} disabled={maxLength === 0} style={{borderRadius:"4px", marginLeft: "3px"}}>
                         <Save 
                             style={{fill: "grey"}}
                         />
@@ -100,8 +129,16 @@ class Plot extends React.Component<PlotProps> {
         }
 
         return (
-            this.state.plots[this.state.currIndex]
+            this.renderPlot(this.state.plots[this.state.currIndex])
         )
+    }
+
+    renderPlot(plotData: any) {
+        if ('image/png' in plotData) {
+            const imageData = "data:image/png;base64," + plotData['image/png'];
+            const image = (<img src={imageData} alt="Graph" />)
+            return image;
+        }
     }
 }
 
