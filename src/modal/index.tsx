@@ -8,9 +8,9 @@ export type ModalProps = {
 
 class Modal extends React.Component<ModalProps> {
 
-    constructor(props: ModalProps) {
-        super(props);
-    }
+    // constructor(props: ModalProps) {
+    //     super(props);
+    // }
 
     render() {
         return (

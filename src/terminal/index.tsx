@@ -295,7 +295,7 @@ class Terminal extends React.Component<TerminalProps> {
     let input = this.state.input;
     return (
       <div>
-        { input.length == 0 ?
+        { input.length === 0 ?
         ( null
 
         ) :

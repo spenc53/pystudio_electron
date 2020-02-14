@@ -17,14 +17,13 @@ declare global {
     require: (module: 'electron') => {
       ipcRenderer: IpcRenderer,
       remote: Remote,
-    };
+    }
   }
 }
 
 const fs = window.require('fs');
 
 const { ipcRenderer, remote } = window.require('electron');
-const dialog: Dialog = remote.dialog;
 
 
 class App extends Component {
@@ -60,8 +59,8 @@ class App extends Component {
 
     ipcRenderer.on(LOADING_PROJECT_CHANNEL, (event, args) => {
       const isDone = args.isDone;
-      const isError = args.isError;
-      const message = args.message;
+      // const isError = args.isError;
+      // const message = args.message;
 
       this.setState({
         showLoading: !isDone
@@ -81,7 +80,6 @@ class App extends Component {
   }
 
   render() {
-    const { active } = this.state;
     return (
       <div style={{ height: '100vh' }}>
         <Modal show={this.state.showLoading} onClick={() => {console.log('background clicked')}}>
