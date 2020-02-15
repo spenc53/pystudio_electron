@@ -11,6 +11,7 @@ import Modal from './modal';
 import HorizontalSplitPane from './horizontalSplitPane';
 import JupyterMessagingService from './services/JupyterMessagingService';
 import { KernelStatus } from './constants/KernelStatus';
+import ProjectData from './project/ProjectData';
 import ProjectState from './project/ProjectState';
 
 declare global {
@@ -77,6 +78,32 @@ class App extends Component {
         active: args
       });
     });
+
+    this.loadState();
+  }
+
+  loadState() {
+    const stateString = localStorage.getItem("state");
+    console.log(stateString);
+    if (!stateString) {
+      return;
+    }
+
+    // not null, load project
+    JSON.parse(stateString);
+    const projectData: ProjectData = Object.setPrototypeOf(JSON.parse(stateString), ProjectData.prototype)
+    ProjectState.getInstance()?.setProjectData(projectData);
+
+    // load project
+    const projectPath = projectData.getProjectPath();
+    if (projectPath) {
+      this.openPystudioProject(projectPath)
+    }
+  }
+
+  saveState() {
+    const stateString = JSON.stringify(ProjectState.getInstance()?.getProjectData());
+    localStorage.setItem("state", stateString); 
   }
 
   render() {
@@ -148,7 +175,8 @@ class App extends Component {
       pythonPath: pathToProject + "/" + envFolder + "/bin/python",
       configPath: pathToProject + "/.pystudio/ipython_config.json"
     });
-    ProjectState.getInstance()?.setProjectPath(pathToProject);
+    ProjectState.getInstance()?.getProjectData().setProjectPath(pathToProject);
+    this.saveState();
   }
   
 }

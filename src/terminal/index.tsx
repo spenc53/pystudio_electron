@@ -354,17 +354,6 @@ class Terminal extends React.Component<TerminalProps> {
       </div>
     )
 
-    // return (
-    //   <div className='cursor'>
-    //     <span style={{ display: 'table-cell', color: "blue" }}>
-    //       IN[{this.execution_count}]:{'\t'}
-    //     </span>
-    //     <span style={{ display: 'table-cell', width: '100%', overflow: 'hidden' }}>
-    //       <input disabled={this.state.kernelStatus===KernelStatus.STOPPED} onKeyDown={this._handleKeyDown} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
-    //     </span>
-    //   </div>
-    // )
-
   }
 }
 
