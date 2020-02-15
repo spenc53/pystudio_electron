@@ -37,7 +37,6 @@ class CodeEditor extends React.Component {
                     theme="xcode"
                     name="UNIQUE_ID_OF_DIV"
                     // onChange={this.onChange}
-                    onInput={this.onInput}
                     // value="Hello World!" /* Load code file and load up value here */
                     editorProps={{
                     $blockScrolling: true
