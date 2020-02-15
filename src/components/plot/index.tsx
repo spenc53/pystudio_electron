@@ -1,12 +1,12 @@
 import React from 'react';
-import JupyterMessagingService from '../services/JupyterMessagingService';
+import JupyterMessagingService from '../../services/JupyterMessagingService';
 import { ReactComponent as Next } from './navigate_next-24px.svg';
 import { ReactComponent as Before } from './navigate_before-24px.svg';
 import { ReactComponent as Save } from './save_alt-24px.svg';
 import ImageButton from '../imageButton';
 
 import { Dialog } from 'electron';
-import ProjectState from '../project/ProjectState';
+import ProjectState from '../../project/ProjectState';
 
 // const fs = window.require('fs');
 
@@ -80,7 +80,6 @@ class Plot extends React.Component<PlotProps> {
         const { currIndex } = this.state
         return (
             <div style={{overflow: "scroll"}}>
-                <div style={{textAlign:"center"}}>Plots</div>
                 <div style={{display: "inline-flex"}}>
                     <ImageButton 
                         disabled={maxLength === 0 || currIndex === 0}
