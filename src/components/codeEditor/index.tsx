@@ -3,6 +3,7 @@ import React from 'react';
 // Import Brace and the AceEditor Component
 // import brace from 'brace';
 import AceEditor from 'react-ace';
+import { KeyboardInputEvent } from 'electron';
 
 // Import a Mode (language)
 require('brace/mode/python');
@@ -35,8 +36,9 @@ class CodeEditor extends React.Component {
                     mode="python"
                     theme="xcode"
                     name="UNIQUE_ID_OF_DIV"
-                    onChange={this.onChange}
-                    value="Hello World!" /* Load code file and load up value here */
+                    // onChange={this.onChange}
+                    onInput={this.onInput}
+                    // value="Hello World!" /* Load code file and load up value here */
                     editorProps={{
                     $blockScrolling: true
                     }}
@@ -46,6 +48,11 @@ class CodeEditor extends React.Component {
                         enableSnippets: true,
                         showLineNumbers: true,
                     }}
+                    commands={[{
+                        name: 'saving',
+                        bindKey: {win: 'control-s', mac: 'cmd-s'},
+                        exec: () => {console.log('save logged')}
+                    }]}
                 />
             </div>
         )
