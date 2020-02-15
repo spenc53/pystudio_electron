@@ -1,3 +1,5 @@
+import ProjectData from "./ProjectData";
+
 export default class ProjectState {
 
     static myInstance?: ProjectState;
@@ -13,14 +15,17 @@ export default class ProjectState {
         ProjectState.myInstance = projectState;
     }
 
-
-    projectPath?: string;
-
-    public getProjectPath(): string | undefined {
-        return this.projectPath;
+    private constructor() {
+        this.projectData = new ProjectData();
     }
 
-    public setProjectPath(projectPath: string) {
-        this.projectPath = projectPath;
+    projectData: ProjectData;
+
+    public getProjectData() {
+        return this.projectData;
+    }
+
+    public setProjectData(projectData: ProjectData) {
+        this.projectData = projectData;
     }
 }

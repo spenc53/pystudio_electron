@@ -55,7 +55,7 @@ class Plot extends React.Component<PlotProps> {
     saveImage() {
         const savePath = dialog.showSaveDialogSync({
             title: "Save plot",
-            defaultPath: ProjectState.getInstance()?.getProjectPath() || ""
+            defaultPath: ProjectState.getInstance()?.getProjectData().getProjectPath() || ""
         });
 
         if (!savePath) return;
