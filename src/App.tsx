@@ -119,7 +119,7 @@ class App extends Component {
           <HorizontalSplitPane.Left>
             <SplitPane>
               <SplitPane.Top>
-                <CodeEditor></CodeEditor>
+                <CodeEditor messagingService={this.messagingService}></CodeEditor>
               </SplitPane.Top>
               <SplitPane.Bottom>
                 <Terminal messagingService={this.messagingService}></Terminal>

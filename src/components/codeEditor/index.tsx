@@ -1,28 +1,34 @@
 import React from 'react';
+import JupyterMessagingService from '../../services/JupyterMessagingService';
 
 // Import Brace and the AceEditor Component
 // import brace from 'brace';
-import AceEditor from 'react-ace';
-import { KeyboardInputEvent } from 'electron';
+import AceEditor, { IEditorProps } from 'react-ace';
+
 
 // Import a Mode (language)
-require('brace/mode/python');
+require('ace-builds/src-noconflict/mode-python');
 
 // Import a Theme (mokadia, github, xcode etc)
-require('brace/theme/xcode');
+require('ace-builds/src-noconflict/theme-xcode');
 
 // Import language tools/autocomplete
 require("brace/ext/language_tools");
 
 export type CodeEditorProps = {
+    messagingService: JupyterMessagingService;
+}
 
-  }
+class CodeEditor extends React.Component<CodeEditorProps> {
 
-class CodeEditor extends React.Component {
+    selection = '';
+
+    jupyterMessagingService: JupyterMessagingService;
 
     constructor(props: CodeEditorProps, context: CodeEditorProps) {
         super(props, context);
         this.onChange = this.onChange.bind(this);
+        this.jupyterMessagingService = props.messagingService;
     }
 
     onChange(newValue: string) {
@@ -47,11 +53,30 @@ class CodeEditor extends React.Component {
                         enableSnippets: true,
                         showLineNumbers: true,
                     }}
-                    commands={[{
-                        name: 'saving',
-                        bindKey: {win: 'control-s', mac: 'cmd-s'},
-                        exec: () => {console.log('save logged')}
-                    }]}
+                    commands={[
+                        {
+                            name: 'saving',
+                            bindKey: {win: 'control-s', mac: 'cmd-s'},
+                            exec: () => {console.log('save logged')}
+                        },
+                        {
+                            name: 'execute_code',
+                            bindKey: {win: 'control-enter', mac:'cmd-enter'},
+                            exec: () => {
+                                if (!this.selection.trim()) {
+                                    return;
+                                }
+                                this.jupyterMessagingService.sendShellChannelCode(this.selection);
+                            }
+                        }
+                    ]}
+                    // onSelectionChange = {this.selectionChanged}
+                    onSelectionChange = {(selection) => {
+                        const session = selection.session;
+                        this.selection = session.getTextRange(selection.getRange());
+                        // get range row and column
+                        // session.lines or something has all the lines in it
+                    }}
                 />
             </div>
         )
