@@ -25,12 +25,16 @@ class CodeEditor extends React.Component<CodeEditorProps> {
     selection = '';
     rowText='';
 
+    aceEditorRef: any;
+
     jupyterMessagingService: JupyterMessagingService;
 
     constructor(props: CodeEditorProps, context: CodeEditorProps) {
         super(props, context);
         this.onChange = this.onChange.bind(this);
         this.jupyterMessagingService = props.messagingService;
+
+        this.aceEditorRef = React.createRef();
     }
 
     onChange(newValue: string) {
@@ -41,6 +45,7 @@ class CodeEditor extends React.Component<CodeEditorProps> {
         return(
             <div>
                 <AceEditor
+                    ref={this.aceEditorRef}
                     mode="python"
                     theme="xcode"
                     name="UNIQUE_ID_OF_DIV"
@@ -65,6 +70,15 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                             name: 'execute_code',
                             bindKey: {win: 'control-enter', mac:'cmd-enter'},
                             exec: () => {
+
+                                // this.aceEditorRef.current.editor.selection.moveTo(ROW,COL);
+                                // also, get the text in here as well
+                                // don't forget about the situation where you are at the end of the file
+                                // const session = this.aceEditorRef.current.editor.session;
+                                // const selection = this.aceEditorRef.current.editor.selection;
+                                // const selectedText = session.getTextRange(selection.getRange());
+                                // if range of the selectrion === 0 then check the full line
+
                                 if (!this.selection.trim()) {
                                     this.jupyterMessagingService.sendShellChannelCode(this.rowText);
                                 } else {
