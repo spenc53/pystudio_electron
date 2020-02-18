@@ -4,6 +4,7 @@ import JupyterMessagingService from '../../services/JupyterMessagingService';
 // Import Brace and the AceEditor Component
 // import brace from 'brace';
 import AceEditor, { IEditorProps } from 'react-ace';
+import { ifError } from 'assert';
 
 
 // Import a Mode (language)
@@ -74,8 +75,9 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                     onSelectionChange = {(selection) => {
                         const session = selection.session;
                         this.selection = session.getTextRange(selection.getRange());
-                        // get range row and column
-                        // session.lines or something has all the lines in it
+                    }}
+                    onCursorChange = {(selection) => {
+                        this.selection = selection.doc.$lines[selection.getCursor().row];
                     }}
                 />
             </div>
