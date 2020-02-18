@@ -23,6 +23,7 @@ export type CodeEditorProps = {
 class CodeEditor extends React.Component<CodeEditorProps> {
 
     selection = '';
+    rowText='';
 
     jupyterMessagingService: JupyterMessagingService;
 
@@ -65,19 +66,20 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                             bindKey: {win: 'control-enter', mac:'cmd-enter'},
                             exec: () => {
                                 if (!this.selection.trim()) {
-                                    return;
+                                    this.jupyterMessagingService.sendShellChannelCode(this.rowText);
+                                } else {
+                                    this.jupyterMessagingService.sendShellChannelCode(this.selection);
                                 }
-                                this.jupyterMessagingService.sendShellChannelCode(this.selection);
+                                
                             }
                         }
                     ]}
-                    // onSelectionChange = {this.selectionChanged}
                     onSelectionChange = {(selection) => {
                         const session = selection.session;
                         this.selection = session.getTextRange(selection.getRange());
                     }}
                     onCursorChange = {(selection) => {
-                        this.selection = selection.doc.$lines[selection.getCursor().row];
+                        this.rowText = selection.doc.$lines[selection.getCursor().row];
                     }}
                 />
             </div>
