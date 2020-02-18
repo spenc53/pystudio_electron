@@ -80,7 +80,7 @@ class Terminal extends React.Component<TerminalProps> {
     } else if ('data' in args) {
       // parse the data
       this.parseData(args['data'])
-    } else if ('code' in args) {
+    } else if ('code' in args && args['code']) {
       const codeLines = args['code'].split("\n");
       const response = [];
       for (let i = 0; i < codeLines.length; i++) {

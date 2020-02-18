@@ -1,28 +1,34 @@
 import React from 'react';
+import JupyterMessagingService from '../../services/JupyterMessagingService';
 
-// Import Brace and the AceEditor Component
-// import brace from 'brace';
-import AceEditor from 'react-ace';
-import { KeyboardInputEvent } from 'electron';
+import AceEditor, { IEditorProps } from 'react-ace';
+import { ifError } from 'assert';
 
 // Import a Mode (language)
-require('brace/mode/python');
+require('ace-builds/src-noconflict/mode-python');
 
 // Import a Theme (mokadia, github, xcode etc)
-require('brace/theme/xcode');
+require('ace-builds/src-noconflict/theme-xcode');
 
-// Import language tools/autocomplete
+// Import language tools/autocomplete; need to update to ace-builds
 require("brace/ext/language_tools");
 
 export type CodeEditorProps = {
+    messagingService: JupyterMessagingService;
+}
 
-  }
+class CodeEditor extends React.Component<CodeEditorProps> {
 
-class CodeEditor extends React.Component {
+    aceEditorRef: any;
+
+    jupyterMessagingService: JupyterMessagingService;
 
     constructor(props: CodeEditorProps, context: CodeEditorProps) {
         super(props, context);
         this.onChange = this.onChange.bind(this);
+        this.jupyterMessagingService = props.messagingService;
+
+        this.aceEditorRef = React.createRef();
     }
 
     onChange(newValue: string) {
@@ -33,11 +39,10 @@ class CodeEditor extends React.Component {
         return(
             <div>
                 <AceEditor
+                    ref={this.aceEditorRef}
                     mode="python"
                     theme="xcode"
                     name="UNIQUE_ID_OF_DIV"
-                    // onChange={this.onChange}
-                    // value="Hello World!" /* Load code file and load up value here */
                     editorProps={{
                     $blockScrolling: true
                     }}
@@ -47,11 +52,34 @@ class CodeEditor extends React.Component {
                         enableSnippets: true,
                         showLineNumbers: true,
                     }}
-                    commands={[{
-                        name: 'saving',
-                        bindKey: {win: 'control-s', mac: 'cmd-s'},
-                        exec: () => {console.log('save logged')}
-                    }]}
+                    commands={[
+                        {
+                            name: 'saving',
+                            bindKey: {win: 'control-s', mac: 'cmd-s'},
+                            exec: () => {console.log('save logged')}
+                        },
+                        {
+                            name: 'execute_code',
+                            bindKey: {win: 'control-enter', mac:'cmd-enter'},
+                            exec: () => {
+
+                                const editor = this.aceEditorRef.current.editor;
+                                const session = this.aceEditorRef.current.editor.session;
+                                const selection = this.aceEditorRef.current.editor.selection;
+                                const selectedText = session.getTextRange(selection.getRange());
+                                const rowText = selection.doc.$lines[selection.getCursor().row];
+
+                                if (!selectedText.trim()) {
+                                    this.jupyterMessagingService.sendShellChannelCode(rowText);
+                                    selection.moveCursorTo(selection.getCursor().row+1,0);
+                                } 
+                                else {
+                                    this.jupyterMessagingService.sendShellChannelCode(selectedText);
+                                }
+                                
+                            }
+                        }
+                    ]}
                 />
             </div>
         )
