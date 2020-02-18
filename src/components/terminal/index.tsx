@@ -1,8 +1,8 @@
 import React from 'react';
-import ColoredMessage from '../models/ColoredMessage';
-import { KernelState } from '../constants/KernelState';
-import JupyterMessagingService from '../services/JupyterMessagingService';
-import { KernelStatus } from '../constants/KernelStatus';
+import ColoredMessage from '../../models/ColoredMessage';
+import { KernelState } from '../../constants/KernelState';
+import JupyterMessagingService from '../../services/JupyterMessagingService';
+import { KernelStatus } from '../../constants/KernelStatus';
 
 export type TerminalProps = {
   messagingService: JupyterMessagingService;
@@ -249,13 +249,13 @@ class Terminal extends React.Component<TerminalProps> {
       <div className="console">
         <div className='console-content' style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="output" onKeyPress={this._handleKeyDown}>
-            {data.map((coloredMessages) => {
-              return (<div>
-                {coloredMessages.map((coloredMessage) => {
+            {data.map((coloredMessages, index) => {
+              return (<div key={index}>
+                {coloredMessages.map((coloredMessage, index1) => {
                   if (!coloredMessage.getText()) {
-                    return <br></br>
+                    return <br key={index1}></br>
                   }
-                  return <span style={{ color: coloredMessage.getColor() }}>{coloredMessage.getText()}</span>
+                  return <span key={index1} style={{ color: coloredMessage.getColor() }}>{coloredMessage.getText()}</span>
                 }
                 )}
               </div>

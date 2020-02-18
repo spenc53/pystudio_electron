@@ -1,19 +1,21 @@
 import React, { Component } from 'react';
 import './App.css';
 
-import SplitPane from './splitpane/SplitPane';
+import SplitPane from './components/splitpane/SplitPane';
 
 import { IpcRenderer, Dialog, Remote } from 'electron';
 import { OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from './constants/Channels';
-import Plot from './plot';
-import Terminal from './terminal';
-import Modal from './modal';
+import Plot from './components/plot';
+import Terminal from './components/terminal';
+import Modal from './components/modal';
 import CodeEditor from "./components/codeEditor";
-import HorizontalSplitPane from './horizontalSplitPane';
+import Tabs from './components/tabs/Tabs';
+import HorizontalSplitPane from './components/horizontalSplitPane';
 import JupyterMessagingService from './services/JupyterMessagingService';
 import { KernelStatus } from './constants/KernelStatus';
 import ProjectData from './project/ProjectData';
 import ProjectState from './project/ProjectState';
+
 
 declare global {
   interface Window {
@@ -129,10 +131,22 @@ class App extends Component {
           <HorizontalSplitPane.Right>
             <SplitPane>
               <SplitPane.Top>
-                {/* {this.file()} */}
+                {/* thing */}
               </SplitPane.Top>
               <SplitPane.Bottom>
-                <Plot messagingService={this.messagingService}></Plot>
+                <Tabs>
+                  <Plot {...this.props && {_key: "plot", label:"Plot"}} messagingService={this.messagingService}></Plot>
+
+                  {/* <div {...this.props && {label:"Gator"}}>
+                    See ya later, <em>Alligator</em>!
+                  </div>
+                  <div {...this.props && {label:"Croc"}}>
+                    After 'while, <em>Crocodile</em>!
+                  </div>
+                  <div {...this.props && {label:"Dino"}}>
+                    Nothing to see here, this tab is <em>extinct</em>!
+                  </div> */}
+                </Tabs>
               </SplitPane.Bottom>
             </SplitPane>
             
