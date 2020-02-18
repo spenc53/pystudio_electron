@@ -1,11 +1,8 @@
 import React from 'react';
 import JupyterMessagingService from '../../services/JupyterMessagingService';
 
-// Import Brace and the AceEditor Component
-// import brace from 'brace';
 import AceEditor, { IEditorProps } from 'react-ace';
 import { ifError } from 'assert';
-
 
 // Import a Mode (language)
 require('ace-builds/src-noconflict/mode-python');
@@ -13,7 +10,7 @@ require('ace-builds/src-noconflict/mode-python');
 // Import a Theme (mokadia, github, xcode etc)
 require('ace-builds/src-noconflict/theme-xcode');
 
-// Import language tools/autocomplete
+// Import language tools/autocomplete; need to update to ace-builds
 require("brace/ext/language_tools");
 
 export type CodeEditorProps = {
@@ -46,8 +43,6 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                     mode="python"
                     theme="xcode"
                     name="UNIQUE_ID_OF_DIV"
-                    // onChange={this.onChange}
-                    // value="Hello World!" /* Load code file and load up value here */
                     editorProps={{
                     $blockScrolling: true
                     }}
@@ -68,20 +63,15 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                             bindKey: {win: 'control-enter', mac:'cmd-enter'},
                             exec: () => {
 
-                                // this.aceEditorRef.current.editor.selection.moveTo(ROW,COL);
-                                // also, get the text in here as well
-                                // don't forget about the situation where you are at the end of the file
                                 const editor = this.aceEditorRef.current.editor;
                                 const session = this.aceEditorRef.current.editor.session;
                                 const selection = this.aceEditorRef.current.editor.selection;
                                 const selectedText = session.getTextRange(selection.getRange());
                                 const rowText = selection.doc.$lines[selection.getCursor().row];
-                                // if range of the selectrion === 0 then check the full line
 
                                 if (!selectedText.trim()) {
                                     this.jupyterMessagingService.sendShellChannelCode(rowText);
                                     selection.moveCursorTo(selection.getCursor().row+1,0);
-
                                 } 
                                 else {
                                     this.jupyterMessagingService.sendShellChannelCode(selectedText);
