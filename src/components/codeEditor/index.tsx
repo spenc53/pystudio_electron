@@ -25,14 +25,9 @@ class CodeEditor extends React.Component<CodeEditorProps> {
 
     constructor(props: CodeEditorProps, context: CodeEditorProps) {
         super(props, context);
-        this.onChange = this.onChange.bind(this);
         this.jupyterMessagingService = props.messagingService;
 
         this.aceEditorRef = React.createRef();
-    }
-
-    onChange(newValue: string) {
-        console.log('change', newValue);
     }
 
     render() {
@@ -44,7 +39,7 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                     theme="xcode"
                     name="UNIQUE_ID_OF_DIV"
                     editorProps={{
-                    $blockScrolling: true
+                    $blockScrolling: true,
                     }}
                     setOptions={{
                         enableBasicAutocompletion: true,
@@ -76,7 +71,6 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                                 else {
                                     this.jupyterMessagingService.sendShellChannelCode(selectedText);
                                 }
-                                
                             }
                         }
                     ]}
