@@ -130,6 +130,8 @@ var KernelConnection = /** @class */ (function () {
                 mainWindow.webContents.send("kernel_info", data);
             }
         });
+        this.client.sendShellCommand("%matplotlib inline", function (data) {
+        });
         this.client.subscribeToIOLoop(function (data) {
             if (_this.running) {
                 mainWindow.webContents.send("io_pub_channel", data);

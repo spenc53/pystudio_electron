@@ -37,15 +37,16 @@ class CodeEditor extends React.Component<CodeEditorProps> {
 
     render() {
         return(
-            <div>
                 <AceEditor
                     ref={this.aceEditorRef}
                     mode="python"
+                    style={{height:'100%', width:'100%'}}
                     theme="xcode"
                     name="UNIQUE_ID_OF_DIV"
                     editorProps={{
                     $blockScrolling: true
                     }}
+                    
                     setOptions={{
                         enableBasicAutocompletion: true,
                         enableLiveAutocompletion: true,
@@ -81,7 +82,6 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                         }
                     ]}
                 />
-            </div>
         )
     }
 }
