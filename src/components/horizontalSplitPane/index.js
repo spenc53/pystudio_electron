@@ -26,6 +26,7 @@ export default function HorizontalSplitPane({ children, ...props }) {
 
   const onMouseUp = () => {
     separatorXPosition.current = null;
+    window.dispatchEvent(new Event('resize'));
   };
 
   React.useEffect(() => {
