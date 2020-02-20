@@ -119,6 +119,10 @@ class KernelConnection {
       }
     });
 
+    this.client.sendShellCommand("%matplotlib inline", (data) => { // send this silently
+
+    })
+
     this.client.subscribeToIOLoop((data) => {
       if (this.running) {
         mainWindow.webContents.send("io_pub_channel", data)

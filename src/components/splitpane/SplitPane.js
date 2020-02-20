@@ -26,6 +26,7 @@ export default function SplitPane({ children, ...props }) {
 
   const onMouseUp = () => {
     separatorYPosition.current = null;
+    window.dispatchEvent(new Event('resize'));
   };
 
   React.useEffect(() => {
