@@ -1,5 +1,5 @@
 import { IpcRenderer } from "electron";
-import { SHELL_CHANNEL_CODE, KERNEL_INTERUPT_REQUEST, STDIN_CHANNEL_REQUEST, STDIN_CHANNEL_REPLY, KERNEL_STATUS } from "../constants/Channels";
+import { SHELL_CHANNEL_CODE, KERNEL_INTERUPT_REQUEST, STDIN_CHANNEL_REQUEST, STDIN_CHANNEL_REPLY, KERNEL_STATUS, SHELL_CHANNEL_CODE_SILENT } from "../constants/Channels";
 import { KernelStatus } from "../constants/KernelStatus";
 import { Subject } from 'rxjs';
 
@@ -70,6 +70,11 @@ class JupyterMessagingService {
 
     subscribeToInputChannel(recieveFunc: recieve) {
         this.stdInSubscribers.push(recieveFunc);
+    }
+
+    sendPublishLocalVarsCommand() {
+        const code = "_publish_local_vars()"
+        this.ipcRenderer.send(SHELL_CHANNEL_CODE_SILENT, code)
     }
 
     getStatus() {

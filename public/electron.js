@@ -62,6 +62,9 @@ function createWindow() {
             kernelConnection.sendShellCode(args);
             // client.sendShellCommand(args, (data) => console.log(data))
         });
+        electron_1.ipcMain.addListener(Channels_1.SHELL_CHANNEL_CODE_SILENT, function (event, args) {
+            kernelConnection.sendShellCode(args, true);
+        });
         electron_1.ipcMain.addListener(Channels_1.STDIN_CHANNEL_REPLY, function (event, args) {
             kernelConnection.sendStdInReply(args);
             // client.sendStdinReply(args);
@@ -131,7 +134,9 @@ var KernelConnection = /** @class */ (function () {
             }
         });
         this.client.sendShellCommand("%matplotlib inline", function (data) {
-        });
+        }, true);
+        this.client.sendShellCommand("\n    def _publish_local_vars():\n      import json as _json\n      def _is_jsonable(x):\n        try:\n          _json.dumps(x)\n          return True\n        except:\n          return False\n              \n      _user_ns = get_ipython().user_ns\n      _user_ns_hidden = get_ipython().user_ns_hidden\n      \n      _nonmatching = object()  # This can never be in user_ns\n      _out = [ i for i in _user_ns\n              if not i.startswith('_') \n              and (_user_ns[i] is not _user_ns_hidden.get(i, _nonmatching))]\n      \n      _types = [type(globals()[x]) for x in _out]\n      \n      _vars = dict(zip(_out, [globals()[x] if _is_jsonable(globals()[x]) else str(type(globals()[x])) for x in _out]))\n      \n      get_ipython().display_pub.publish({'application/json': _vars})\n    ", function (data) {
+        }, true);
         this.client.subscribeToIOLoop(function (data) {
             if (_this.running) {
                 mainWindow.webContents.send("io_pub_channel", data);
@@ -168,8 +173,9 @@ var KernelConnection = /** @class */ (function () {
             _this.disconnect();
         });
     };
-    KernelConnection.prototype.sendShellCode = function (args) {
-        this.client.sendShellCommand(args, function (data) { return console.log(data); });
+    KernelConnection.prototype.sendShellCode = function (args, silent) {
+        if (silent === void 0) { silent = false; }
+        this.client.sendShellCommand(args, function (data) { return console.log(data); }, silent);
     };
     KernelConnection.prototype.sendStdInReply = function (args) {
         this.client.sendStdinReply(args);

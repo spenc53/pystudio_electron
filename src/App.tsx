@@ -15,6 +15,7 @@ import JupyterMessagingService from './services/JupyterMessagingService';
 import { KernelStatus } from './constants/KernelStatus';
 import ProjectData from './project/ProjectData';
 import ProjectState from './project/ProjectState';
+import VariableView from './components/variableView';
 
 
 declare global {
@@ -131,21 +132,13 @@ class App extends Component {
           <HorizontalSplitPane.Right>
             <SplitPane>
               <SplitPane.Top>
-                {/* thing */}
+                <div style={{overflow:'scroll', height:'100%'}}>
+                  <VariableView messagingService={this.messagingService}></VariableView>
+                </div>
               </SplitPane.Top>
               <SplitPane.Bottom>
                 <Tabs>
                   <Plot {...this.props && {_key: "plot", label:"Plot"}} messagingService={this.messagingService}></Plot>
-
-                  {/* <div {...this.props && {label:"Gator"}}>
-                    See ya later, <em>Alligator</em>!
-                  </div>
-                  <div {...this.props && {label:"Croc"}}>
-                    After 'while, <em>Crocodile</em>!
-                  </div>
-                  <div {...this.props && {label:"Dino"}}>
-                    Nothing to see here, this tab is <em>extinct</em>!
-                  </div> */}
                 </Tabs>
               </SplitPane.Bottom>
             </SplitPane>
