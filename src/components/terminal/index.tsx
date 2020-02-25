@@ -100,6 +100,9 @@ class Terminal extends React.Component<TerminalProps> {
       if (args['code'] === '') {
         this.execution_count -= 1;
       }
+
+      this.jupyterMessagingService.sendPublishLocalVarsCommand();
+      // after code, we should send a request for variables?
     } else if ('ename' in args) {
       this.execution_count -= 1;
       this.parseError(args)

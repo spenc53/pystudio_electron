@@ -1,7 +1,7 @@
 import { app, dialog, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain } from 'electron';
 import * as path from 'path';
 import * as isDev from 'electron-is-dev';
-import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from '../src/constants/Channels';
+import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL, SHELL_CHANNEL_CODE_SILENT } from '../src/constants/Channels';
 import { KernelStatus } from '../src/constants/KernelStatus';
 import { spawnSync, spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
@@ -29,6 +29,11 @@ function createWindow() {
       kernelConnection.sendShellCode(args);
       // client.sendShellCommand(args, (data) => console.log(data))
     });
+
+    ipcMain.addListener(SHELL_CHANNEL_CODE_SILENT, (event, args) => {
+      kernelConnection.sendShellCode(args, true);
+    })
+
     ipcMain.addListener(STDIN_CHANNEL_REPLY, (event, args) => {
       kernelConnection.sendStdInReply(args);
       // client.sendStdinReply(args);
@@ -121,7 +126,34 @@ class KernelConnection {
 
     this.client.sendShellCommand("%matplotlib inline", (data) => { // send this silently
 
-    })
+    }, true);
+
+    this.client.sendShellCommand(`
+    def _publish_local_vars():
+      import json as _json
+      def _is_jsonable(x):
+        try:
+          _json.dumps(x)
+          return True
+        except:
+          return False
+              
+      _user_ns = get_ipython().user_ns
+      _user_ns_hidden = get_ipython().user_ns_hidden
+      
+      _nonmatching = object()  # This can never be in user_ns
+      _out = [ i for i in _user_ns
+              if not i.startswith('_') 
+              and (_user_ns[i] is not _user_ns_hidden.get(i, _nonmatching))]
+      
+      _types = [type(globals()[x]) for x in _out]
+      
+      _vars = dict(zip(_out, [globals()[x] if _is_jsonable(globals()[x]) else str(type(globals()[x])) for x in _out]))
+      
+      get_ipython().display_pub.publish({'application/json': _vars})
+    `, (data) => {
+
+    }, true);
 
     this.client.subscribeToIOLoop((data) => {
       if (this.running) {
@@ -165,8 +197,8 @@ class KernelConnection {
     });
   }
 
-  sendShellCode(args: any) {
-    this.client.sendShellCommand(args, (data) => console.log(data))
+  sendShellCode(args: any, silent: boolean = false) {
+    this.client.sendShellCommand(args, (data) => console.log(data), silent)
   }
 
   sendStdInReply(args: any) {
