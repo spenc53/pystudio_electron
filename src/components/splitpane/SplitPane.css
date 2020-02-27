@@ -9,6 +9,8 @@
 .split-pane-bottom {
     flex: 1;
     overflow: hidden;
+    border: #D6DADC 2px solid;
+    border-radius: 3px;
 }
 
 .split-pane-top {
@@ -20,6 +22,6 @@
 }
 
 .separator {
-    border: 5px solid grey;
+    border: 3px solid #F6F7F9;
     cursor: row-resize;
 }
