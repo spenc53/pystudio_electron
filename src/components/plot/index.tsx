@@ -43,6 +43,9 @@ class Plot extends React.Component<PlotProps> {
     parsePubChannel(args: any) {
         if ('data' in args) {
             let data = args['data'];
+            if (!('image/png' in data)) {
+                return;
+            }
             
             const plots = this.state.plots.concat(data)
             this.setState({
@@ -79,46 +82,50 @@ class Plot extends React.Component<PlotProps> {
         const maxLength = this.state.plots.length;
         const { currIndex } = this.state
         return (
-            <div style={{overflow: "scroll"}}>
-                <div style={{display: "inline-flex"}}>
-                    <ImageButton 
-                        disabled={maxLength === 0 || currIndex === 0}
-                        style={{borderRadius:"4px", marginLeft: "3px"}}
-                        onClick={() => {
-                            this.setState({
-                                currIndex: currIndex - 1
-                            })
-                        }}
-                    >
-                        <Before 
-                            style={{fill: "grey"}}
-                        />
-                    </ImageButton>
-                    <ImageButton
-                        disabled={maxLength === 0 || (currIndex === maxLength-1)}
-                        style={{borderRadius:"4px", marginLeft: "3px"}}
-                        onClick={() => {
-                            this.setState({
-                                currIndex: currIndex + 1
-                            })
-                        }}
-                    >
-                        <Next 
-                            style={{fill: "grey"}}
-                        />
-                    </ImageButton>
-                    <div style={{borderLeft: "1px solid grey", marginLeft: "3px", marginTop: "3px", marginBottom: "3px"}}></div>
-                    <ImageButton onClick={this.saveImage} disabled={maxLength === 0} style={{borderRadius:"4px", marginLeft: "3px"}}>
-                        <Save 
-                            style={{fill: "grey"}}
-                        />
-                        <span style={{verticalAlign:"super", marginLeft: "2px", fontSize:"13px"}}>Export</span>
-                    </ImageButton>
+            <>
+                <div style={{borderBottom: '#D6DADC 2px solid', background:'#F4F8F9'}}>
+                    <div style={{display: "inline-flex"}}>
+                        <ImageButton 
+                            disabled={maxLength === 0 || currIndex === 0}
+                            style={{borderRadius:"4px", marginLeft: "3px"}}
+                            onClick={() => {
+                                this.setState({
+                                    currIndex: currIndex - 1
+                                })
+                            }}
+                        >
+                            <Before 
+                                style={{fill: "grey"}}
+                            />
+                        </ImageButton>
+                        <ImageButton
+                            disabled={maxLength === 0 || (currIndex === maxLength-1)}
+                            style={{borderRadius:"4px", marginLeft: "3px"}}
+                            onClick={() => {
+                                this.setState({
+                                    currIndex: currIndex + 1
+                                })
+                            }}
+                        >
+                            <Next 
+                                style={{fill: "grey"}}
+                            />
+                        </ImageButton>
+                        <div style={{borderLeft: "1px solid grey", marginLeft: "3px", marginTop: "3px", marginBottom: "3px"}}></div>
+                        <ImageButton onClick={this.saveImage} disabled={maxLength === 0} style={{borderRadius:"4px", marginLeft: "3px"}}>
+                            <Save 
+                                style={{fill: "grey"}}
+                            />
+                            <span style={{verticalAlign:"super", marginLeft: "2px", fontSize:"13px"}}>Export</span>
+                        </ImageButton>
+                    </div>
                 </div>
-                <div style={{textAlign:"center", overflow: "scroll"}}>
+                <div style={{flex: '1', overflow: "scroll"}}>
+                    <div style={{alignItems: 'center', justifyContent: 'center', display:'flex'}}>
                     {this.getCurrentPlot()}
+                    </div>
                 </div>
-            </div>
+            </>
         )
     }
 

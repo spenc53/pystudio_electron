@@ -112,7 +112,8 @@ class App extends Component {
 
   render() {
     return (
-      <div style={{ height: '100vh' }}>
+      <div style={{ height: '-webkit-fill-available', background:'#F6F7F9' }}>
+        <div style={{height:'-webkit-fill-available', padding:'5px'}}>
         <Modal show={this.state.showLoading} onClick={() => {console.log('background clicked')}}>
           <div style={{textAlign: 'center'}}>
             Opening Project
@@ -125,26 +126,45 @@ class App extends Component {
                 <CodeEditor messagingService={this.messagingService}></CodeEditor>
               </SplitPane.Top>
               <SplitPane.Bottom>
-                <Terminal messagingService={this.messagingService}></Terminal>
+                <div style={{height:'-webkit-fill-available'}}>
+                  <div style={{height:'100%'}}>
+                  <Tabs>
+                    <Terminal {...this.props && {_key: "terminal", label:"Terminal"}} messagingService={this.messagingService}></Terminal>
+                  </Tabs>
+                  </div>
+                </div>
               </SplitPane.Bottom>
             </SplitPane>
           </HorizontalSplitPane.Left>
           <HorizontalSplitPane.Right>
             <SplitPane>
               <SplitPane.Top>
-                <div style={{overflow:'scroll', height:'100%'}}>
-                  <VariableView messagingService={this.messagingService}></VariableView>
+                <div style={{height:'-webkit-fill-available'}}>
+                    <Tabs>
+                      <div {...this.props && {_key: "environment", label:"Environment"}} style={{overflow:'scroll', height:'-webkit-fill-available'}}>
+                        <VariableView messagingService={this.messagingService}></VariableView>
+                      </div>
+                    </Tabs>
                 </div>
+                
               </SplitPane.Top>
               <SplitPane.Bottom>
-                <Tabs>
-                  <Plot {...this.props && {_key: "plot", label:"Plot"}} messagingService={this.messagingService}></Plot>
-                </Tabs>
+                <div style={{height:'-webkit-fill-available'}}>
+                  <div style={{height:'100%'}}>
+                    <Tabs>
+                      <div {...this.props && {_key: "file", label:"Files"}}>Stuff</div>
+                      <Plot {...this.props && {_key: "plot", label:"Plot"}} messagingService={this.messagingService}></Plot>
+                      <div {...this.props && {_key: "packages", label:"Packages"}}>Stuff</div>
+                      <div {...this.props && {_key: "help", label:"Help"}}>Stuff</div>
+                    </Tabs>
+                  </div>
+                </div>
               </SplitPane.Bottom>
             </SplitPane>
             
           </HorizontalSplitPane.Right>
         </HorizontalSplitPane>
+      </div>
       </div>
     );
   }

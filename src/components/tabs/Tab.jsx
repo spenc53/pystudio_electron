@@ -26,6 +26,8 @@ class Tab extends Component {
 
     if (activeTab === label) {
       className += ' tab-list-active';
+    } else {
+      className += ' tab-list-inactive';
     }
 
     return (
