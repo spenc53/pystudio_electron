@@ -3,7 +3,9 @@ import ColoredMessage from '../../models/ColoredMessage';
 import { KernelState } from '../../constants/KernelState';
 import JupyterMessagingService from '../../services/JupyterMessagingService';
 import { KernelStatus } from '../../constants/KernelStatus';
+import { ReactComponent as Stop } from './stop.svg';
 import './terminal.css'
+import ImageButton from '../imageButton';
 
 export type TerminalProps = {
   messagingService: JupyterMessagingService;
@@ -46,6 +48,7 @@ class Terminal extends React.Component<TerminalProps> {
     this.terminal = this.terminal.bind(this);
     this.Input = this.Input.bind(this);
     this._handlePaste = this._handlePaste.bind(this);
+    this._stopCodeExecution = this._stopCodeExecution.bind(this);
 
     // setup subscribers
     this.parsePubChannel = this.parsePubChannel.bind(this);
@@ -224,7 +227,11 @@ class Terminal extends React.Component<TerminalProps> {
         input: []
       });
     }
+  }
 
+  _stopCodeExecution() {
+    console.log("STOP PRESSED");
+    this.jupyterMessagingService.sendKernelInterrupt();
   }
 
   _handlePaste(e: any) {
@@ -247,8 +254,31 @@ class Terminal extends React.Component<TerminalProps> {
     return (
       <>
         <div style={{borderBottom: '#D6DADC 1px solid', background:'#F4F8F9'}}>
-          <div style={{display: "inline-flex"}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', padding:'3px'}}>
 
+            {/* Left hand side buttons */}
+            <div>
+            </div>
+            
+            {/* Right hand side buttons */}
+            <div>
+              <ImageButton
+                disabled={this.state.executionState === KernelState.IDLE}
+                style={{
+                  borderRadius:"4px",
+                  marginLeft: "3px",
+                  verticalAlign:'center',
+                }}
+                onClick={this._stopCodeExecution}
+              >
+                <Stop style={{
+                  width:"18px",
+                  height:"18px",
+                  opacity: this.state.executionState === KernelState.IDLE ? '.4' : '1'
+                }}
+                  ></Stop>
+              </ImageButton>
+            </div>
           </div>
         </div>
         {this.terminal()}
@@ -283,14 +313,6 @@ class Terminal extends React.Component<TerminalProps> {
   }
 
   private Input() {
-    // if (executionState === KernelState.BUSY || executionState === KernelState.STARTING) {
-    //   return null;
-    // }
-
-    if (this.state.executionState === KernelState.BUSY) {
-      // need input but has to listen for the ctrl + c
-    }
-
     if (this.state.executionState === KernelState.INPUT) {
       return (
         <div className='cursor'>
@@ -301,13 +323,13 @@ class Terminal extends React.Component<TerminalProps> {
           <span style={{ display: 'table-cell', width: '100%' }}>
             <input onKeyDown={this._handleKeyDown} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
           </span>
-      </div>
+        </div>
       )
     }
 
     let input = this.state.input;
     return (
-      <div>
+      <div style={{display: this.state.executionState === KernelState.BUSY ? 'none' : 'block'}}>
         { input.length === 0 ?
         ( null
 

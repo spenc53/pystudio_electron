@@ -84,7 +84,7 @@ class Plot extends React.Component<PlotProps> {
         return (
             <>
                 <div style={{borderBottom: '#D6DADC 1px solid', background:'#F4F8F9'}}>
-                    <div style={{display: "inline-flex"}}>
+                    <div style={{display: 'flex'}}>
                         <ImageButton 
                             disabled={maxLength === 0 || currIndex === 0}
                             style={{borderRadius:"4px", marginLeft: "3px"}}
@@ -121,7 +121,7 @@ class Plot extends React.Component<PlotProps> {
                     </div>
                 </div>
                 <div style={{flex: '1', overflow: "scroll"}}>
-                    <div style={{alignItems: 'center', justifyContent: 'center', display:'flex'}}>
+                    <div style={{alignItems: 'center', display:'flex'}}>
                     {this.getCurrentPlot()}
                     </div>
                 </div>
