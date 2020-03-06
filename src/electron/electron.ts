@@ -1,12 +1,17 @@
 import { app, dialog, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain } from 'electron';
 import * as path from 'path';
 import * as isDev from 'electron-is-dev';
-import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL, SHELL_CHANNEL_CODE_SILENT } from '../src/constants/Channels';
-import { KernelStatus } from '../src/constants/KernelStatus';
+import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL, SHELL_CHANNEL_CODE_SILENT } from '../constants/Channels';
+import { KernelStatus } from '../constants/KernelStatus';
 import { spawnSync, spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 
 import { JupyterKernelClient, KernelConfig } from 'zmq_jupyter';
+
+// console.log = function(data: any){
+//   // send to front end to log
+//   mainWindow.webContents.send("log", data);
+// };
 
 let mainWindow: any;
 let kernelConnection: KernelConnection;
@@ -44,12 +49,12 @@ function createWindow() {
     });
   })
 
-  mainWindow.loadURL(isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../build/index.html')}`);
-  if (isDev) {
+  mainWindow.loadURL(isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../../index.html')}`);
+  // if (isDev) {
     // Open the DevTools.
     //BrowserWindow.addDevToolsExtension('<location to your react chrome extension>');
     mainWindow.webContents.openDevTools();
-  }
+  // }
   mainWindow.on('closed', () => mainWindow = null);
 }
 
@@ -110,11 +115,11 @@ class KernelConnection {
   }
 
   init() {
-    this.kernelProcess.stdout.on('data', (data) => {
+    this?.kernelProcess?.stdout?.on('data', (data) => {
       console.log(data.toString('utf-8'));
     });
 
-    this.kernelProcess.stderr.on('data', (data) => {
+    this?.kernelProcess?.stderr?.on('data', (data) => {
       console.log(data.toString('utf-8'));
     });
 

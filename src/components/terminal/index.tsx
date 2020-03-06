@@ -3,6 +3,7 @@ import ColoredMessage from '../../models/ColoredMessage';
 import { KernelState } from '../../constants/KernelState';
 import JupyterMessagingService from '../../services/JupyterMessagingService';
 import { KernelStatus } from '../../constants/KernelStatus';
+import './terminal.css'
 
 export type TerminalProps = {
   messagingService: JupyterMessagingService;
@@ -243,7 +244,16 @@ class Terminal extends React.Component<TerminalProps> {
   }
 
   render() {
-    return this.terminal();
+    return (
+      <>
+        <div style={{borderBottom: '#D6DADC 1px solid', background:'#F4F8F9'}}>
+          <div style={{display: "inline-flex"}}>
+
+          </div>
+        </div>
+        {this.terminal()}
+      </>
+    );
   }
 
   terminal() {

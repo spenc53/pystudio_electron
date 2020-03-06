@@ -83,7 +83,7 @@ class Plot extends React.Component<PlotProps> {
         const { currIndex } = this.state
         return (
             <>
-                <div style={{borderBottom: '#D6DADC 2px solid', background:'#F4F8F9'}}>
+                <div style={{borderBottom: '#D6DADC 1px solid', background:'#F4F8F9'}}>
                     <div style={{display: "inline-flex"}}>
                         <ImageButton 
                             disabled={maxLength === 0 || currIndex === 0}

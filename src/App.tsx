@@ -62,6 +62,10 @@ class App extends Component {
       this.openPystudioProject(args);
     });
 
+    ipcRenderer.on('log', (event, args) => {
+      console.log(args);
+    })
+
     ipcRenderer.on(LOADING_PROJECT_CHANNEL, (event, args) => {
       const isDone = args.isDone;
       // const isError = args.isError;

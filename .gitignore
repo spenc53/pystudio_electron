@@ -3,6 +3,7 @@
 # build files
 public/electron.js
 src/constants/*.js
+src/electron/*.js
 
 
 # dependencies
