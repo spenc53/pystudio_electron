@@ -16,7 +16,7 @@ import { JupyterKernelClient, KernelConfig } from 'zmq_jupyter';
 let mainWindow: any;
 let kernelConnection: KernelConnection;
 
-function createWindow() {
+function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 680,
@@ -49,7 +49,7 @@ function createWindow() {
     });
   })
 
-  mainWindow.loadURL(isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../../index.html')}`);
+  mainWindow.loadURL(isDev ? 'http://localhost:3000?main' : `file://${path.join(__dirname, '../../index.html?main')}`);
   // if (isDev) {
     // Open the DevTools.
     //BrowserWindow.addDevToolsExtension('<location to your react chrome extension>');
@@ -58,7 +58,8 @@ function createWindow() {
   mainWindow.on('closed', () => mainWindow = null);
 }
 
-app.once('ready', createWindow);
+ // hmmmm..... this creation of the window on ready function might be a pain
+app.once('ready', createMainWindow);
 
 app.on('window-all-closed', () => {
   // if (process.platform !== 'darwin') {
@@ -74,8 +75,11 @@ app.on('quit', () => {
 })
 
 app.on('activate', () => {
+  // check if project is already opened
+  // if not, show the other window
+  // the other window will need to be able to create the main window
   if (mainWindow === null) {
-    createWindow();
+    createMainWindow();
   }
 });
 
@@ -219,6 +223,7 @@ class KernelConnection {
   }
 
   close() {
+    // send the client an exit command instead of the sigquit otherwise it will see it as python crashing, which isn't good
     this.kernelProcess.kill('SIGQUIT');
     this.disconnect();
   }

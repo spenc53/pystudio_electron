@@ -95,7 +95,10 @@ class Plot extends React.Component<PlotProps> {
                             }}
                         >
                             <Before 
-                                style={{fill: "grey"}}
+                                style={{
+                                    fill: "grey",
+                                    opacity: maxLength === 0 || currIndex === 0 ? '.4' : '1'
+                                }}
                             />
                         </ImageButton>
                         <ImageButton
@@ -108,15 +111,21 @@ class Plot extends React.Component<PlotProps> {
                             }}
                         >
                             <Next 
-                                style={{fill: "grey"}}
+                                style={{
+                                    fill: "grey",
+                                    opacity: maxLength === 0 || (currIndex === maxLength-1) ? '.4' : '1'
+                                }}
                             />
                         </ImageButton>
                         <div style={{borderLeft: "1px solid grey", marginLeft: "3px", marginTop: "3px", marginBottom: "3px"}}></div>
                         <ImageButton onClick={this.saveImage} disabled={maxLength === 0} style={{borderRadius:"4px", marginLeft: "3px"}}>
                             <Save 
-                                style={{fill: "grey"}}
+                                style={{
+                                    fill: "grey",
+                                    opacity: maxLength === 0 ? '.4' : '1'
+                                }}
                             />
-                            <span style={{verticalAlign:"super", marginLeft: "2px", fontSize:"13px"}}>Export</span>
+                            <span style={{verticalAlign:"super", marginLeft: "2px", fontSize:"13px", opacity: maxLength === 0 ? '.4' : '1'}}>Export</span>
                         </ImageButton>
                     </div>
                 </div>
