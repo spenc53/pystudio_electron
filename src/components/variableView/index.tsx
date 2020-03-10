@@ -1,6 +1,7 @@
 import React from 'react';
 import JsonViewer from './jsonViewer';
 import JupyterMessagingService from '../../services/JupyterMessagingService';
+import { Subscription } from 'rxjs';
 
 export type VariableViewProps = {
     messagingService: JupyterMessagingService
@@ -9,6 +10,12 @@ export type VariableViewProps = {
 class VariableView extends React.Component<VariableViewProps> {
     state: {
         json: any
+    }
+
+    ioPubSubscription: Subscription;
+
+    componentWillUnmount() {
+        this.ioPubSubscription.unsubscribe();
     }
 
     constructor(props: VariableViewProps) {
@@ -20,7 +27,7 @@ class VariableView extends React.Component<VariableViewProps> {
 
         this.listenForMessages = this.listenForMessages.bind(this);
 
-        props.messagingService.subscribeToPubIoChannel(this.listenForMessages)
+        this.ioPubSubscription = props.messagingService.subscribeToIoPub(this.listenForMessages)
     }
 
     listenForMessages(args: any) {

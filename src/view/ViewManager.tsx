@@ -1,15 +1,17 @@
 import React from 'react';
-import App from '../App';
+import App from '../windows/project/App';
 import {
     BrowserRouter as Router,
     Route
 } from 'react-router-dom';
+import OpenView from '../windows/open/OpenView';
 
 
 class ViewManager extends React.Component {
     static Views(): any {
         return {
             main: <App/>,
+            open: <OpenView/>
             // other view
         }
     }
@@ -26,9 +28,7 @@ class ViewManager extends React.Component {
     render() {
         return (
             <Router>
-                <div>
-                    <Route path='/' component={ViewManager.View}/>
-                </div>
+                <Route path='/' component={ViewManager.View}/>
             </Router>
         );
     }

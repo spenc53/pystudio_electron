@@ -7,6 +7,8 @@ import { ReactComponent as Stop } from './stop.svg';
 import './terminal.css'
 import ImageButton from '../imageButton';
 
+import { Subscription } from 'rxjs';
+
 export type TerminalProps = {
   messagingService: JupyterMessagingService;
 }
@@ -23,11 +25,19 @@ class Terminal extends React.Component<TerminalProps> {
 
   jupyterMessagingService: JupyterMessagingService;
 
+  ioPubSubscription: Subscription;
+  inputChannelSubscription: Subscription;
+
   private endofInput: React.RefObject<HTMLInputElement>;
 
   componentDidUpdate() {
     if (!this.endofInput.current) return;
     this.endofInput.current.scrollIntoView()
+  }
+
+  componentWillUnmount() {
+    this.ioPubSubscription.unsubscribe();
+    this.inputChannelSubscription.unsubscribe();
   }
 
   constructor(props: TerminalProps) {
@@ -54,8 +64,8 @@ class Terminal extends React.Component<TerminalProps> {
     this.parsePubChannel = this.parsePubChannel.bind(this);
     this.parseInputRequest = this.parseInputRequest.bind(this);
 
-    this.jupyterMessagingService.subscribeToPubIoChannel(this.parsePubChannel);
-    this.jupyterMessagingService.subscribeToInputChannel(this.parseInputRequest);
+    this.ioPubSubscription = this.jupyterMessagingService.subscribeToIoPub(this.parsePubChannel);
+    this.inputChannelSubscription = this.jupyterMessagingService.subscribeToInputChannel(this.parseInputRequest);
 
     this.jupyterMessagingService.getStatus().subscribe((kernelStatus: KernelStatus) => {
       console.log(kernelStatus)
@@ -65,13 +75,13 @@ class Terminal extends React.Component<TerminalProps> {
     });
   }
 
+
+  // needs to unsubscribe on deconstruct
   parsePubChannel(args: any) {
     if ('execution_count' in args) {
       this.execution_count = args['execution_count']
+      console.log(args)
     }
-
-    console.log(args);
-
     if ('execution_state' in args) {
       if (args['execution_state'].toUpperCase() === 'IDLE') {
         this.setState({
@@ -215,6 +225,7 @@ class Terminal extends React.Component<TerminalProps> {
       }
 
       this.jupyterMessagingService.sendShellChannelCode(allCode);
+      console.log(allCode);
       e.target.value = "";
       this.setState({
         input: []
@@ -230,7 +241,6 @@ class Terminal extends React.Component<TerminalProps> {
   }
 
   _stopCodeExecution() {
-    console.log("STOP PRESSED");
     this.jupyterMessagingService.sendKernelInterrupt();
   }
 
@@ -383,7 +393,7 @@ class Terminal extends React.Component<TerminalProps> {
             )
           }
           <span style={{ display: 'table-cell', width: '100%', overflow: 'hidden' }}>
-            <input disabled={this.state.kernelStatus===KernelStatus.STOPPED} onKeyDown={this._handleKeyDown} onPasteCapture={this._handlePaste} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
+            <input onKeyDown={this._handleKeyDown} onPasteCapture={this._handlePaste} style={{ background: "transparent", border: "none", color: "black", outline: 'none', fontFamily: 'inherit', font: 'inherit', width: '100%' }}></input>
           </span>
         </div>
       </div>

@@ -3,10 +3,12 @@ import * as path from 'path';
 import * as isDev from 'electron-is-dev';
 import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL, SHELL_CHANNEL_CODE_SILENT } from '../constants/Channels';
 import { KernelStatus } from '../constants/KernelStatus';
-import { spawnSync, spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 
 import { JupyterKernelClient, KernelConfig } from 'zmq_jupyter';
+
+const Store = require('electron-store');
 
 // console.log = function(data: any){
 //   // send to front end to log
@@ -14,7 +16,10 @@ import { JupyterKernelClient, KernelConfig } from 'zmq_jupyter';
 // };
 
 let mainWindow: any;
+let openWindow: any;
 let kernelConnection: KernelConnection;
+
+const storage = new Store();
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -30,23 +35,7 @@ function createMainWindow() {
   mainWindow.once('ready-to-show', () => mainWindow.show());
 
   mainWindow.webContents.once('dom-ready', () => {
-    ipcMain.addListener(SHELL_CHANNEL_CODE, (event, args) => {
-      kernelConnection.sendShellCode(args);
-      // client.sendShellCommand(args, (data) => console.log(data))
-    });
-
-    ipcMain.addListener(SHELL_CHANNEL_CODE_SILENT, (event, args) => {
-      kernelConnection.sendShellCode(args, true);
-    })
-
-    ipcMain.addListener(STDIN_CHANNEL_REPLY, (event, args) => {
-      kernelConnection.sendStdInReply(args);
-      // client.sendStdinReply(args);
-    });
-    ipcMain.addListener(KERNEL_INTERUPT_REQUEST, (event) => {
-      kernelConnection.sendIntterupt();
-      // kernelProcess.kill('SIGINT');
-    });
+    
   })
 
   mainWindow.loadURL(isDev ? 'http://localhost:3000?main' : `file://${path.join(__dirname, '../../index.html?main')}`);
@@ -55,11 +44,42 @@ function createMainWindow() {
     //BrowserWindow.addDevToolsExtension('<location to your react chrome extension>');
     mainWindow.webContents.openDevTools();
   // }
-  mainWindow.on('closed', () => mainWindow = null);
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  });
 }
 
- // hmmmm..... this creation of the window on ready function might be a pain
-app.once('ready', createMainWindow);
+function createOpenWindow() {
+  openWindow = new BrowserWindow({
+    width: 600,
+    height: 500,
+    webPreferences: {
+      nodeIntegration: true,
+      nodeIntegrationInWorker: true
+    },
+    show: false
+  });
+  openWindow.once('ready-to-show', () => openWindow.show());
+  openWindow.loadURL(isDev ? 'http://localhost:3000?open' : `file://${path.join(__dirname, '../../index.html?open')}`);
+  // if (isDev) {
+    // Open the DevTools.
+    //BrowserWindow.addDevToolsExtension('<location to your react chrome extension>');
+    openWindow.webContents.openDevTools();
+  // }
+  openWindow.on('closed', () => openWindow = null);
+}
+
+function startApp() {
+  const projectPath = storage.get('projectPath');
+
+  if (projectPath && validatePystudioProject(projectPath)) {
+    startProject(projectPath);
+    return;
+  }
+  createOpenWindow();
+}
+
+app.once('ready', startApp);
 
 app.on('window-all-closed', () => {
   // if (process.platform !== 'darwin') {
@@ -75,21 +95,153 @@ app.on('quit', () => {
 })
 
 app.on('activate', () => {
-  // check if project is already opened
-  // if not, show the other window
-  // the other window will need to be able to create the main window
-  if (mainWindow === null) {
-    createMainWindow();
+  // app should not be open without any active windows
+});
+
+ipcMain.addListener(SHELL_CHANNEL_CODE, (event, args) => {
+  if (kernelConnection) {
+    kernelConnection.sendShellCode(args);
   }
 });
 
-ipcMain.addListener(OPEN_PROJECT, (event, args) => {
+ipcMain.addListener(SHELL_CHANNEL_CODE_SILENT, (event, args) => {
+  if (kernelConnection) {
+    kernelConnection.sendShellCode(args, true);
+  }
+})
+
+ipcMain.addListener(STDIN_CHANNEL_REPLY, (event, args) => {
+  if (kernelConnection) {
+    kernelConnection.sendStdInReply(args);
+  }
+});
+ipcMain.addListener(KERNEL_INTERUPT_REQUEST, (event) => {
+  if (kernelConnection) {
+    kernelConnection.sendIntterupt();
+  }
+});
+
+ipcMain.addListener('OPEN_PROJECT', (_, pathToProject) => {
+  // persist project
+  storage.set('projectPath', pathToProject);
+  let recentProjects: string[] = storage.get('recentProjects');
+  if (!recentProjects) {
+    recentProjects = [];
+  }
+
+  let index = 0;
+  while (index != -1) {
+    index = recentProjects.indexOf(pathToProject)
+    if (index == 0) {
+      recentProjects = recentProjects.slice(1);
+    } else if (index > 0) {
+      recentProjects.splice(recentProjects.indexOf(pathToProject, 1));
+    }
+  }
+
+  recentProjects.unshift(pathToProject);
+  recentProjects = recentProjects.slice(0,10);
+  storage.set('recentProjects', recentProjects);
+
+  // openProject
+  startProject(pathToProject);
+})
+
+function openPystudioProject() {
+  const data = dialog.showOpenDialogSync({properties: ['openDirectory']});
+  if (!data || data.length === 0) return;
+
+  const pathToProject = data[0];
+
+  if (!validatePystudioProject(pathToProject)) {
+    // not a valid project, do not open
+    // open dialog with error
+    dialog.showErrorBox("Pystudio", pathToProject + " is not a valid Pystudio Project");
+    return;
+  }
+
+  // persist project
+  storage.set('projectPath', pathToProject);
+  let recentProjects: string[] = storage.get('recentProjects');
+  if (!recentProjects) {
+    recentProjects = [];
+  }
+
+  let index = 0;
+  while (index != -1) {
+    index = recentProjects.indexOf(pathToProject)
+    if (index == 0) {
+      recentProjects = recentProjects.slice(1);
+    } else if (index > 0) {
+      recentProjects.splice(recentProjects.indexOf(pathToProject, 1));
+    }
+  }
+
+  recentProjects.unshift(pathToProject);
+  recentProjects = recentProjects.slice(0,10);
+  storage.set('recentProjects', recentProjects);
+
+  // openProject
+  startProject(pathToProject);
+}
+
+function validatePystudioProject(pathToProject: string): boolean {
+  // check for the config data file
+  if (!fs.existsSync(pathToProject + "/.pystudio/config.json")) {
+    console.log('not a pystudio project');
+    return false;
+  }
+
+  // check if the env exists
+  let configData = JSON.parse(fs.readFileSync(pathToProject + "/.pystudio/config.json").toString());
+  let envFolder = configData['env_name'];
+  if (!fs.existsSync(pathToProject + "/" + envFolder)) {
+    console.log('no python env present')
+    return false;
+  }
+
+  // project exists
+  return true;
+}
+
+function startProject(pathToProject: string) {
+  let configData = JSON.parse(fs.readFileSync(pathToProject + "/.pystudio/config.json").toString());
+  let envFolder = configData['env_name'];
+  const pythonPath = pathToProject + "/" + envFolder + "/bin/python";
+  const configPath = pathToProject + "/.pystudio/ipython_config.json";
+
+  if (!mainWindow) {
+    console.log('here')
+    createMainWindow();
+  }
+
+  if (kernelConnection && !kernelConnection.isClosed()) {
+    kernelConnection.close();
+  }
+  kernelConnection = new KernelConnection(pythonPath, configPath);
+
+  if (openWindow) {
+    openWindow.close();
+    openWindow = null;
+  }
+}
+
+function closeProject() {
   if (kernelConnection && !kernelConnection.isClosed()) {
     kernelConnection.close();
   }
 
-  kernelConnection = new KernelConnection(args.pythonPath, args.configPath);
-});
+  storage.delete('projectPath');
+
+  if(!openWindow) {
+    createOpenWindow();
+  }
+
+  if (mainWindow) {
+    mainWindow.close();
+    mainWindow = null;
+  }
+}
 
 class KernelConnection {
   kernelProcess: ChildProcess
@@ -246,14 +398,19 @@ const template: MenuItemConstructorOptions[] = [
       {
         label: 'Open Project',
         click() {
-          const data = dialog.showOpenDialogSync({properties: ['openDirectory']});
-          if (!data || data.length === 0) return;
-          mainWindow.webContents.send(OPEN_PROJECT, data[0]);
+          openPystudioProject();
+        }
+      },
+      {
+        label: 'Close Project',
+        click() {
+          closeProject();
         }
       },
       {
         label: 'New Project',
         click() {
+          // TODO: write custom new Project dialog
           const dirs = dialog.showOpenDialogSync({ properties: ['openDirectory']});
           
           if (!dirs || dirs.length === 0) {
@@ -267,6 +424,8 @@ const template: MenuItemConstructorOptions[] = [
             return;
           }
           
+          // show parent modal
+          // can set parent so, we can set the parent to be the main or the openview
           const setupPromise = new Promise(async (resolve, reject) => {
             mainWindow.webContents.send(LOADING_PROJECT_CHANNEL, {
               message: 'Creating new Project',
@@ -306,6 +465,7 @@ const template: MenuItemConstructorOptions[] = [
           });
 
           setupPromise.then((value: any) => {
+            // call the open project command
             mainWindow.webContents.send(OPEN_PROJECT, dir);
           });
 
@@ -318,12 +478,6 @@ const template: MenuItemConstructorOptions[] = [
             })
             dialog.showErrorBox("Python Error", "Error making python virutal env")
           });
-        }
-      },
-      {
-        label: 'Test load',
-        click() {
-          
         }
       }
     ]

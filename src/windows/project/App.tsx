@@ -1,21 +1,21 @@
 import React, { Component } from 'react';
 import './App.css';
 
-import SplitPane from './components/splitpane/SplitPane';
+import SplitPane from '../../components/splitpane/SplitPane';
 
 import { IpcRenderer, Dialog, Remote } from 'electron';
-import { OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from './constants/Channels';
-import Plot from './components/plot';
-import Terminal from './components/terminal';
-import Modal from './components/modal';
-import CodeEditor from "./components/codeEditor";
-import Tabs from './components/tabs/Tabs';
-import HorizontalSplitPane from './components/horizontalSplitPane';
-import JupyterMessagingService from './services/JupyterMessagingService';
-import { KernelStatus } from './constants/KernelStatus';
-import ProjectData from './project/ProjectData';
-import ProjectState from './project/ProjectState';
-import VariableView from './components/variableView';
+import { OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from '../../constants/Channels';
+import Plot from '../../components/plot';
+import Terminal from '../../components/terminal';
+import Modal from '../../components/modal';
+import CodeEditor from "../../components/codeEditor";
+import Tabs from '../../components/tabs/Tabs';
+import HorizontalSplitPane from '../../components/horizontalSplitPane';
+import JupyterMessagingService from '../../services/JupyterMessagingService';
+import { KernelStatus } from '../../constants/KernelStatus';
+import ProjectData from '../../project/ProjectData';
+import ProjectState from '../../project/ProjectState';
+import VariableView from '../../components/variableView';
 
 
 declare global {
@@ -53,15 +53,6 @@ class App extends Component {
     };
     this.projectDir = '';
 
-    this.openPystudioProject = this.openPystudioProject.bind(this);
-
-    ipcRenderer.on(OPEN_PROJECT, (event, args) => {
-      this.setState({
-        showLoading: true
-      })
-      this.openPystudioProject(args);
-    });
-
     ipcRenderer.on('log', (event, args) => {
       console.log(args);
     })
@@ -86,32 +77,6 @@ class App extends Component {
         active: args
       });
     });
-
-    this.loadState();
-  }
-
-  loadState() {
-    const stateString = localStorage.getItem("state");
-    console.log(stateString);
-    if (!stateString) {
-      return;
-    }
-
-    // not null, load project
-    JSON.parse(stateString);
-    const projectData: ProjectData = Object.setPrototypeOf(JSON.parse(stateString), ProjectData.prototype)
-    ProjectState.getInstance()?.setProjectData(projectData);
-
-    // load project
-    const projectPath = projectData.getProjectPath();
-    if (projectPath) {
-      this.openPystudioProject(projectPath)
-    }
-  }
-
-  saveState() {
-    const stateString = JSON.stringify(ProjectState.getInstance()?.getProjectData());
-    localStorage.setItem("state", stateString); 
   }
 
   render() {
@@ -180,37 +145,6 @@ class App extends Component {
       </div>
     );
   }
-
-  openPystudioProject(pathToProject: string): void {
-
-    if (!fs.existsSync(pathToProject + "/.pystudio/config.json")) {
-      console.log('not a pystudio project');
-      return;
-    }
-
-    // logic for valid project here
-    let configData = JSON.parse(fs.readFileSync(pathToProject + "/.pystudio/config.json"));
-    let envFolder = configData['env_name'];
-    if (!fs.existsSync(pathToProject + "/" + envFolder)) {
-      console.log('no python env present')
-      return;
-    }
-
-    // pystudio project
-    // send main config location and python env path
-    // front end will only be required to know overall command, not path to python or the config, will pass as params
-
-    // else it is a pystudio project
-    console.log(pathToProject + "/" + envFolder + "/bin/python");
-    console.log(pathToProject + "/.pystudio/ipython_config.json");
-    ipcRenderer.send(OPEN_PROJECT, {
-      pythonPath: pathToProject + "/" + envFolder + "/bin/python",
-      configPath: pathToProject + "/.pystudio/ipython_config.json"
-    });
-    ProjectState.getInstance()?.getProjectData().setProjectPath(pathToProject);
-    this.saveState();
-  }
-  
 }
 
 export default App;

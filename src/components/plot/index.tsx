@@ -5,8 +5,9 @@ import { ReactComponent as Before } from './navigate_before-24px.svg';
 import { ReactComponent as Save } from './save_alt-24px.svg';
 import ImageButton from '../imageButton';
 
-import { Dialog } from 'electron';
 import ProjectState from '../../project/ProjectState';
+
+import { Subscription } from 'rxjs';
 
 // const fs = window.require('fs');
 
@@ -25,6 +26,12 @@ class Plot extends React.Component<PlotProps> {
 
     messagingService: JupyterMessagingService;
 
+    ioPubSubscription: Subscription;
+
+    componentWillUnmount() {
+        this.ioPubSubscription.unsubscribe();
+    }
+
     constructor(props: PlotProps) {
         super(props);
         this.messagingService = props.messagingService;
@@ -37,7 +44,7 @@ class Plot extends React.Component<PlotProps> {
         this.getCurrentPlot = this.getCurrentPlot.bind(this);
         this.saveImage = this.saveImage.bind(this);
 
-        this.messagingService.subscribeToPubIoChannel(this.parsePubChannel);
+        this.ioPubSubscription = this.messagingService.subscribeToIoPub(this.parsePubChannel);
     }
 
     parsePubChannel(args: any) {
