@@ -12,3 +12,5 @@ exports.LOADING_PROJECT_CHANNEL = "loading_project_channel";
 exports.OPEN_PROJECT = "open_project";
 exports.START_IPYTHON_PROCESS = "start_ipython_process";
 exports.KERNEL_STATUS = "kernel_status";
+exports.CREATE_PROJECT_STDOUT = "create_project_stdout";
+exports.CREATE_PROJECT_STDERR = "create_project_stderr";

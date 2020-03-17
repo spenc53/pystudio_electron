@@ -15,3 +15,7 @@ export const OPEN_PROJECT = "open_project";
 export const START_IPYTHON_PROCESS = "start_ipython_process";
 
 export const KERNEL_STATUS = "kernel_status";
+
+export const CREATE_PROJECT_NEW = "create_project_new"
+export const CREATE_PROJECT_STDOUT = "create_project_stdout";
+export const CREATE_PROJECT_STDERR = "create_project_stderr"

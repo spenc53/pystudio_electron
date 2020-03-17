@@ -1,7 +1,18 @@
 import { app, dialog, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain } from 'electron';
 import * as path from 'path';
 import * as isDev from 'electron-is-dev';
-import { SHELL_CHANNEL_CODE, STDIN_CHANNEL_REPLY, STDIN_CHANNEL_REQUEST, KERNEL_INTERUPT_REQUEST, OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL, SHELL_CHANNEL_CODE_SILENT } from '../constants/Channels';
+import {
+  CREATE_PROJECT_NEW,
+  CREATE_PROJECT_STDOUT,
+  CREATE_PROJECT_STDERR,
+  KERNEL_INTERUPT_REQUEST,
+  KERNEL_STATUS,
+  LOADING_PROJECT_CHANNEL,
+  SHELL_CHANNEL_CODE,
+  SHELL_CHANNEL_CODE_SILENT,
+  STDIN_CHANNEL_REPLY,
+  STDIN_CHANNEL_REQUEST
+} from '../constants/Channels';
 import { KernelStatus } from '../constants/KernelStatus';
 import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
@@ -17,6 +28,7 @@ const Store = require('electron-store');
 
 let mainWindow: any;
 let openWindow: any;
+let loadingWindow: any;
 let kernelConnection: KernelConnection;
 
 const storage = new Store();
@@ -33,10 +45,6 @@ function createMainWindow() {
   });
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
-
-  mainWindow.webContents.once('dom-ready', () => {
-    
-  })
 
   mainWindow.loadURL(isDev ? 'http://localhost:3000?main' : `file://${path.join(__dirname, '../../index.html?main')}`);
   // if (isDev) {
@@ -89,7 +97,6 @@ app.on('window-all-closed', () => {
 
 app.on('quit', () => {
   if (kernelConnection && !kernelConnection.isClosed()) {
-    console.log('killing python process')
     kernelConnection.close();
   }
 })
@@ -122,34 +129,36 @@ ipcMain.addListener(KERNEL_INTERUPT_REQUEST, (event) => {
 });
 
 ipcMain.addListener('OPEN_PROJECT', (_, pathToProject) => {
-  // persist project
-  storage.set('projectPath', pathToProject);
-  let recentProjects: string[] = storage.get('recentProjects');
-  if (!recentProjects) {
-    recentProjects = [];
+  if (!pathToProject) {
+    pathToProject = openFolder();
   }
 
-  let index = 0;
-  while (index != -1) {
-    index = recentProjects.indexOf(pathToProject)
-    if (index == 0) {
-      recentProjects = recentProjects.slice(1);
-    } else if (index > 0) {
-      recentProjects.splice(recentProjects.indexOf(pathToProject, 1));
-    }
+  if (!pathToProject) {
+    return;
   }
 
-  recentProjects.unshift(pathToProject);
-  recentProjects = recentProjects.slice(0,10);
-  storage.set('recentProjects', recentProjects);
-
-  // openProject
+  storeProject(pathToProject);
   startProject(pathToProject);
+});
+
+ipcMain.addListener(CREATE_PROJECT_NEW, (_) => {
+  createProject();
 })
 
 function openPystudioProject() {
+  const pathToProject = openFolder();
+
+  if (!pathToProject) {
+    return;
+  }
+
+  storeProject(pathToProject);
+  startProject(pathToProject);
+}
+
+function openFolder(): string {
   const data = dialog.showOpenDialogSync({properties: ['openDirectory']});
-  if (!data || data.length === 0) return;
+  if (!data || data.length === 0) return '';
 
   const pathToProject = data[0];
 
@@ -157,32 +166,9 @@ function openPystudioProject() {
     // not a valid project, do not open
     // open dialog with error
     dialog.showErrorBox("Pystudio", pathToProject + " is not a valid Pystudio Project");
-    return;
+    return '';
   }
-
-  // persist project
-  storage.set('projectPath', pathToProject);
-  let recentProjects: string[] = storage.get('recentProjects');
-  if (!recentProjects) {
-    recentProjects = [];
-  }
-
-  let index = 0;
-  while (index != -1) {
-    index = recentProjects.indexOf(pathToProject)
-    if (index == 0) {
-      recentProjects = recentProjects.slice(1);
-    } else if (index > 0) {
-      recentProjects.splice(recentProjects.indexOf(pathToProject, 1));
-    }
-  }
-
-  recentProjects.unshift(pathToProject);
-  recentProjects = recentProjects.slice(0,10);
-  storage.set('recentProjects', recentProjects);
-
-  // openProject
-  startProject(pathToProject);
+  return pathToProject;
 }
 
 function validatePystudioProject(pathToProject: string): boolean {
@@ -204,6 +190,29 @@ function validatePystudioProject(pathToProject: string): boolean {
   return true;
 }
 
+function storeProject(pathToProject: string) {
+  storage.set('projectPath', pathToProject);
+  let recentProjects: string[] = storage.get('recentProjects');
+  if (!recentProjects) {
+    recentProjects = [];
+  }
+
+  let index = 0;
+  while (index != -1) {
+    index = recentProjects.indexOf(pathToProject)
+    if (index == 0) {
+      recentProjects = recentProjects.slice(1);
+    } else if (index > 0) {
+      recentProjects.splice(recentProjects.indexOf(pathToProject, 1));
+    }
+  }
+
+  recentProjects.unshift(pathToProject);
+  recentProjects = recentProjects.slice(0,10);
+  storage.set('recentProjects', recentProjects);
+}
+
+
 function startProject(pathToProject: string) {
   let configData = JSON.parse(fs.readFileSync(pathToProject + "/.pystudio/config.json").toString());
   let envFolder = configData['env_name'];
@@ -211,7 +220,6 @@ function startProject(pathToProject: string) {
   const configPath = pathToProject + "/.pystudio/ipython_config.json";
 
   if (!mainWindow) {
-    console.log('here')
     createMainWindow();
   }
 
@@ -243,6 +251,99 @@ function closeProject() {
   }
 }
 
+function createProject() {
+  // TODO: write custom new Project dialog
+  const dirs = dialog.showOpenDialogSync({ properties: ['openDirectory']});
+          
+  if (!dirs || dirs.length === 0) {
+    return;
+  }
+
+  const pathToProject = dirs[0];
+
+  if (fs.existsSync(pathToProject + "/" + ".pystudio")) {
+    dialog.showErrorBox("Project already exists", "A project already exists in this folder. Try opening it instead")
+    return;
+  }
+  
+  // show parent modal
+  // can set parent so, we can set the parent to be the main or the openview
+  createLoadingWindow(mainWindow == null ? openWindow : mainWindow);
+  const setupPromise = new Promise(async (resolve, reject) => {
+    loadingWindow?.webContents.send(LOADING_PROJECT_CHANNEL, {
+      message: 'Creating new Project',
+      isError: false,
+      isDone: false
+    });
+
+    // initialize it
+    fs.mkdirSync(pathToProject + "/" + ".pystudio")
+    fs.writeFileSync(pathToProject + "/" + ".pystudio/config.json", JSON.stringify(config));
+    fs.writeFileSync(pathToProject + "/" + ".pystudio/ipython_config.json", JSON.stringify(pykernelConfig)); 
+
+    const envSetupProcess = spawn("python3", ["-m", "venv", pathToProject + "/" + "env"]);
+    envSetupProcess.on('error', () => {
+      reject('Could not setup python process');
+    });
+
+    envSetupProcess?.stdout?.on("data", (data) => {
+      sendDataToLoadingWindow(CREATE_PROJECT_STDOUT, data.toString('UTF-8'));
+    })
+
+    envSetupProcess?.stderr?.on("data", (data) => {
+      sendDataToLoadingWindow(CREATE_PROJECT_STDERR, data.toString('UTF-8'));
+    })
+
+
+    envSetupProcess.on('exit', (code: number) => {
+      if (code !== 0) {
+        reject('Non zero exit: ' + code);
+        return;
+      } 
+
+      const envInstall = spawn(pathToProject + "/" + "env/bin/pip", ["install", "ipykernel", "matplotlib"]);
+
+      envInstall?.stdout?.on('data', (data) => {
+        sendDataToLoadingWindow(CREATE_PROJECT_STDOUT, data.toString('UTF-8'));
+      })
+
+      envInstall?.stderr?.on('data', (data) => {
+        sendDataToLoadingWindow(CREATE_PROJECT_STDERR, data.toString('UTF-8'));
+      })
+
+      envInstall.on('error', () => {
+        reject('Could not setup python process');
+      });
+
+      envInstall.on('exit', (code: number) => {
+        if (code !== 0) {
+          reject('Non zero exit: ' + code);
+          return;
+        }
+        resolve('');
+      });
+    })
+  });
+
+  setupPromise.then((value: any) => {
+    // call the open project command
+    closeLoadingWindow();
+    storeProject(pathToProject);
+    startProject(pathToProject);
+    
+  });
+
+  setupPromise.catch((error: any) => {
+    console.log(error);
+    dialog.showMessageBoxSync(loadingWindow, {
+      type: 'error',
+      title: 'Python Error',
+      message: 'Error making python virutal env'
+    });
+    closeLoadingWindow();
+  });
+}
+
 class KernelConnection {
   kernelProcess: ChildProcess
   client: JupyterKernelClient
@@ -272,11 +373,11 @@ class KernelConnection {
 
   init() {
     this?.kernelProcess?.stdout?.on('data', (data) => {
-      console.log(data.toString('utf-8'));
+      // console.log(data.toString('utf-8'));
     });
 
     this?.kernelProcess?.stderr?.on('data', (data) => {
-      console.log(data.toString('utf-8'));
+      // console.log(data.toString('utf-8'));
     });
 
     this.client.getKernelInfo((data) =>  {
@@ -385,11 +486,49 @@ class KernelConnection {
       mainWindow.webContents.send(KERNEL_STATUS, KernelStatus.STOPPED);
     }
     this.running = false;
-    console.log('STOPPED');
     this.client.stop();
   }
 }
 
+function createLoadingWindow(window: BrowserWindow) {
+  loadingWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    parent: window,
+    modal: true,
+    webPreferences: {
+      nodeIntegration: true,
+      nodeIntegrationInWorker: true
+    },
+    show: false
+  });
+
+  loadingWindow.once('ready-to-show', () => loadingWindow.show());
+
+  loadingWindow.loadURL(isDev ? 'http://localhost:3000?loading' : `file://${path.join(__dirname, '../../index.html?loading')}`);
+  // if (isDev) {
+    // Open the DevTools.
+    //BrowserWindow.addDevToolsExtension('<location to your react chrome extension>');
+    loadingWindow.webContents.openDevTools();
+  // }
+  loadingWindow.on('closed', () => {
+    loadingWindow = null
+  });
+}
+
+function closeLoadingWindow() {
+  if (!loadingWindow) {
+    return;
+  }
+
+  loadingWindow.close();
+}
+
+function sendDataToLoadingWindow(channel: string, data: any) {
+  if (!loadingWindow) return;
+
+  loadingWindow.webContents.send(channel, data);
+}
 
 const template: MenuItemConstructorOptions[] = [
   {
@@ -410,74 +549,10 @@ const template: MenuItemConstructorOptions[] = [
       {
         label: 'New Project',
         click() {
-          // TODO: write custom new Project dialog
-          const dirs = dialog.showOpenDialogSync({ properties: ['openDirectory']});
+          createProject();
+          // show a window
+          // must be a loading window?
           
-          if (!dirs || dirs.length === 0) {
-            return;
-          }
-
-          const dir = dirs[0];
-
-          if (fs.existsSync(dir + "/" + ".pystudio")) {
-            dialog.showErrorBox("Project already exists", "A project already exists in this folder. Try opening it instead")
-            return;
-          }
-          
-          // show parent modal
-          // can set parent so, we can set the parent to be the main or the openview
-          const setupPromise = new Promise(async (resolve, reject) => {
-            mainWindow.webContents.send(LOADING_PROJECT_CHANNEL, {
-              message: 'Creating new Project',
-              isError: false,
-              isDone: false
-            });
-
-            // initialize it
-            fs.mkdirSync(dir + "/" + ".pystudio")
-            fs.writeFileSync(dir + "/" + ".pystudio/config.json", JSON.stringify(config));
-            fs.writeFileSync(dir + "/" + ".pystudio/ipython_config.json", JSON.stringify(pykernelConfig)); 
-
-            const envSetupProcess = spawn("python3", ["-m", "venv", dir + "/" + "env"]);
-            envSetupProcess.on('error', () => {
-              reject('Could not setup python process');
-            });
-
-            envSetupProcess.on('exit', (code: number) => {
-              if (code !== 0) {
-                reject('Non zero exit: ' + code);
-                return;
-              } 
-
-              const envInstall = spawn(dir + "/" + "env/bin/pip", ["install", "ipykernel", "matplotlib"]);
-              envInstall.on('error', () => {
-                reject('Could not setup python process');
-              });
-
-              envInstall.on('exit', (code: number) => {
-                if (code !== 0) {
-                  reject('Non zero exit: ' + code);
-                  return;
-                }
-                resolve('');
-              });
-            })
-          });
-
-          setupPromise.then((value: any) => {
-            // call the open project command
-            mainWindow.webContents.send(OPEN_PROJECT, dir);
-          });
-
-          setupPromise.catch((error: any) => {
-            console.log(error);
-            mainWindow.webContents.send(LOADING_PROJECT_CHANNEL, {
-              message: "Error creating python project",
-              isDone: true,
-              isError: true
-            })
-            dialog.showErrorBox("Python Error", "Error making python virutal env")
-          });
         }
       }
     ]

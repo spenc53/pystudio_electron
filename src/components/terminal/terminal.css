@@ -34,7 +34,7 @@
     animation-name: blink;
     animation-duration: 800ms;
     animation-iteration-count: infinite;
-opacity: 1;
+    opacity: 1;
 }
 
 .cursor input:focus + i {

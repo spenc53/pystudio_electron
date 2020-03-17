@@ -5,13 +5,15 @@ import {
     Route
 } from 'react-router-dom';
 import OpenView from '../windows/open/OpenView';
+import LoadingView from '../windows/loading/LoadingView';
 
 
 class ViewManager extends React.Component {
     static Views(): any {
         return {
             main: <App/>,
-            open: <OpenView/>
+            open: <OpenView/>,
+            loading: <LoadingView/>
             // other view
         }
     }
