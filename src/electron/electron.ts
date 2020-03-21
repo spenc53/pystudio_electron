@@ -477,7 +477,8 @@ class KernelConnection {
 
   close() {
     // send the client an exit command instead of the sigquit otherwise it will see it as python crashing, which isn't good
-    this.kernelProcess.kill('SIGQUIT');
+    // this.kernelProcess.kill('SIGQUIT');
+    this.client.sendControlCommand("exit", (_) => {});
     this.disconnect();
   }
 
