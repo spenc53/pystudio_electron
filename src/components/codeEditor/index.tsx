@@ -1,9 +1,7 @@
 import React from 'react';
 import JupyterMessagingService from '../../services/JupyterMessagingService';
 
-import AceEditor, { IEditorProps } from 'react-ace';
-import { ifError } from 'assert';
-import ImageButton from '../imageButton';
+import AceEditor from 'react-ace';
 
 // Import a Mode (language)
 require('ace-builds/src-noconflict/mode-python');
@@ -27,6 +25,14 @@ class CodeEditor extends React.Component<CodeEditorProps> {
 
     jupyterMessagingService: JupyterMessagingService;
 
+    type: string;
+
+    static typeTable:any = {
+        "py" : "python",
+        "python": "python",
+        "" : "txt"
+    }
+
     constructor(props: CodeEditorProps, context: CodeEditorProps) {
         super(props, context);
         this.onChange = this.onChange.bind(this);
@@ -35,6 +41,9 @@ class CodeEditor extends React.Component<CodeEditorProps> {
 
         this.aceEditorRef = React.createRef();
 
+        let tempType = props.fileLocation.split('\.').pop();
+        this.type = tempType ? CodeEditor.typeTable[tempType] : "";
+        
         fs.readFile(this.props.fileLocation, (err: any, data: any) => {
             this.aceEditorRef.current.editor.setValue(data.toString(), -1)
         });
@@ -53,7 +62,7 @@ class CodeEditor extends React.Component<CodeEditorProps> {
             <>
                 <AceEditor
                     ref={this.aceEditorRef}
-                    mode="python"
+                    mode={this.type}
                     style={{height:'100%', width:'100%'}}
                     theme="xcode"
                     name="UNIQUE_ID_OF_DIV"
