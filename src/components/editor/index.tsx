@@ -26,22 +26,8 @@ class Editor extends React.Component<EditorProps> {
         this.openFile = this.openFile.bind(this);
         this.closeFile = this.closeFile.bind(this);
 
-
-        const file1 = '/Users/spencerseeger/Documents/pystudio_projects/project1/test1.txt';
-        const fileName1 = file1.split('/').pop();
-        const file2 = '/Users/spencerseeger/Documents/pystudio_projects/project1/test2.txt';
-        const fileName2 = file2.split('/').pop();
         this.state = {
-            openedFiles: [
-                {
-                    fileName: file1,
-                    component: <CodeEditor {...this.props && {_key: fileName1, label:fileName1, onClose:() => this.closeFile(file1)}} messagingService={this.props.messagingService} fileLocation={file1}/>
-                },
-                {
-                    fileName: file2,
-                    component: <CodeEditor {...this.props && {_key: fileName2, label:fileName2, onClose:() => this.closeFile(file2)}} messagingService={this.props.messagingService} fileLocation={file2}/>
-                }
-                
+            openedFiles: [                
             ],
         }
 
@@ -51,15 +37,15 @@ class Editor extends React.Component<EditorProps> {
     }
 
     openFile(file: string) {
-        // const codeEditor: CodeEditor = (
-        //     <CodeEditor {...this.props && {_key: "file", label:"Files"}} messagingService={this.props.messagingService} fileLocation={file}/>
-        // )
-        // this.setState(
-        //     {
-        //         openedFiles: this.state.openedFiles.concat(file),
-        //         openedTabs: this.state.openedTabs.concat([codeEditor])
-        //     }
-        // )
+        const fileName = file.split('/').pop();
+        this.setState(
+            {
+                openedFiles: this.state.openedFiles.concat({
+                    fileName: file, 
+                    component: <CodeEditor {...this.props && {_key: fileName, label:fileName, onClose:() => this.closeFile(file)}} messagingService={this.props.messagingService} fileLocation={file}/>
+                }),
+            }
+        )
     }
 
     closeFile(file: string) {
@@ -72,6 +58,8 @@ class Editor extends React.Component<EditorProps> {
     }
 
     render() {
+        if (this.state.openedFiles.length === 0 ) return null;
+
         return (
             <Tabs>
                 {this.state.openedFiles.map((file, index) => {

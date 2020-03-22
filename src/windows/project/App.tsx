@@ -124,7 +124,7 @@ class App extends Component {
                 <div style={{height:'-webkit-fill-available'}}>
                   <div style={{height:'100%'}}>
                     <Tabs>
-                      <FileViewer {...this.props && {_key: "file", label:"Files"}} base={this.store.get('projectPath')} projectName={'project'}></FileViewer>
+                      <FileViewer {...this.props && {_key: "file", label:"Files"}} base={this.store.get('projectPath')} projectName={'project'} fileService={this.fileService}></FileViewer>
                       <Plot {...this.props && {_key: "plot", label:"Plot"}} messagingService={this.messagingService}></Plot>
                       <div {...this.props && {_key: "packages", label:"Packages"}}>Stuff</div>
                       <div {...this.props && {_key: "help", label:"Help"}}>Stuff</div>

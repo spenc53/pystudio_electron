@@ -35,7 +35,6 @@ class CodeEditor extends React.Component<CodeEditorProps> {
 
         this.aceEditorRef = React.createRef();
 
-        console.log(fs.readFileSync(this.props.fileLocation).toString());
         fs.readFile(this.props.fileLocation, (err: any, data: any) => {
             this.aceEditorRef.current.editor.setValue(data.toString(), -1)
         });
@@ -52,15 +51,6 @@ class CodeEditor extends React.Component<CodeEditorProps> {
     render() {
         return(
             <>
-                {/* <div style={{borderBottom: '#D6DADC 1px solid', background:'#F4F8F9'}}>
-                    <div style={{display: 'flex'}}>
-                        <ImageButton>
-                            <div>
-                                Hello
-                            </div>
-                        </ImageButton>
-                    </div>
-                </div> */}
                 <AceEditor
                     ref={this.aceEditorRef}
                     mode="python"
