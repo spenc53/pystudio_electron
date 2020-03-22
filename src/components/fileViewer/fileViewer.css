@@ -1,0 +1,33 @@
+.items {
+    font-family: "Lucida Sans", "DejaVu Sans", "Lucida Grande", "Segoe UI", Verdana, Helvetica, sans-serif, serif;
+    font-size: 12px;
+    margin: 5px;
+    height: 100%;
+    overflow: auto;
+}
+
+.path {
+    font-family: "Lucida Sans", "DejaVu Sans", "Lucida Grande", "Segoe UI", Verdana, Helvetica, sans-serif, serif;
+    font-size: 12px;
+}
+
+.icon {
+    height: 20px;
+    width: 20px;
+}
+
+.item {
+    width: fit-content;
+    display: flex;
+    align-items: center;   
+}
+
+.item :hover{
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.name {
+    margin-left: 1px;
+    color: blue;
+}
