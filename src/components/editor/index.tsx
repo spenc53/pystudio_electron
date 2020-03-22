@@ -58,8 +58,6 @@ class Editor extends React.Component<EditorProps> {
     }
 
     render() {
-        if (this.state.openedFiles.length === 0 ) return null;
-
         return (
             <Tabs>
                 {this.state.openedFiles.map((file, index) => {

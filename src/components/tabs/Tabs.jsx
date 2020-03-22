@@ -11,7 +11,7 @@ class Tabs extends Component {
     
     let children = React.Children.toArray(this.props.children)
     this.state = {
-      activeTab: children[0].props.label,
+      activeTab: children[0]?.props.label,
     };
 
     this.onClosed = this.onClosed.bind(this);

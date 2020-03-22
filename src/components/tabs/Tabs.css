@@ -7,7 +7,8 @@
     margin-left: -1px;
     margin-top: -1px;
     margin-bottom: 0px;
-    background: #E7E8EA
+    background: #E7E8EA;
+    min-height: 26px;
 }
 
 .tab-list::-webkit-scrollbar {
