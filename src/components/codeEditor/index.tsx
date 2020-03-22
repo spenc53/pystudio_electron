@@ -3,6 +3,7 @@ import JupyterMessagingService from '../../services/JupyterMessagingService';
 
 import AceEditor, { IEditorProps } from 'react-ace';
 import { ifError } from 'assert';
+import ImageButton from '../imageButton';
 
 // Import a Mode (language)
 require('ace-builds/src-noconflict/mode-python');
@@ -13,8 +14,11 @@ require('ace-builds/src-noconflict/theme-xcode');
 // Import language tools/autocomplete; need to update to ace-builds
 require("brace/ext/language_tools");
 
+const fs = window.require('fs');
+
 export type CodeEditorProps = {
     messagingService: JupyterMessagingService;
+    fileLocation: string
 }
 
 class CodeEditor extends React.Component<CodeEditorProps> {
@@ -26,17 +30,37 @@ class CodeEditor extends React.Component<CodeEditorProps> {
     constructor(props: CodeEditorProps, context: CodeEditorProps) {
         super(props, context);
         this.onChange = this.onChange.bind(this);
+        this.onSave = this.onSave.bind(this);
         this.jupyterMessagingService = props.messagingService;
 
         this.aceEditorRef = React.createRef();
+
+        console.log(fs.readFileSync(this.props.fileLocation).toString());
+        fs.readFile(this.props.fileLocation, (err: any, data: any) => {
+            this.aceEditorRef.current.editor.setValue(data.toString(), -1)
+        });
     }
 
     onChange(newValue: string) {
         console.log('change', newValue);
     }
 
+    onSave() {
+        fs.writeFileSync(this.props.fileLocation, this.aceEditorRef.current.editor.getSession().getValue())
+    }
+
     render() {
         return(
+            <>
+                {/* <div style={{borderBottom: '#D6DADC 1px solid', background:'#F4F8F9'}}>
+                    <div style={{display: 'flex'}}>
+                        <ImageButton>
+                            <div>
+                                Hello
+                            </div>
+                        </ImageButton>
+                    </div>
+                </div> */}
                 <AceEditor
                     ref={this.aceEditorRef}
                     mode="python"
@@ -57,7 +81,7 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                         {
                             name: 'saving',
                             bindKey: {win: 'control-s', mac: 'cmd-s'},
-                            exec: () => {console.log('save logged')}
+                            exec: () => {this.onSave()}
                         },
                         {
                             name: 'execute_code',
@@ -82,6 +106,7 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                         }
                     ]}
                 />
+            </>
         )
     }
 }

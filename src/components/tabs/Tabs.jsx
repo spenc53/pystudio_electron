@@ -13,14 +13,22 @@ class Tabs extends Component {
     this.state = {
       activeTab: children[0].props.label,
     };
+
+    this.onClosed = this.onClosed.bind(this);
   }
 
   onClickTabItem = (tab) => {
     this.setState({ activeTab: tab });
   }
 
+  onClosed() {
+    this.setState({
+      activeTab: React.Children.toArray(this.props.children)[0].props.label
+    })
+  }
+
   render() {
-    const {
+    let {
       onClickTabItem,
       state: {
         activeTab,
@@ -29,19 +37,27 @@ class Tabs extends Component {
 
     const children = React.Children.toArray(this.props.children);
 
+    if (children.length > 0 && children.findIndex((child) => {return child.props.label == activeTab }) < 0) {
+      this.state = {
+        activeTab: children[0].props.label
+      };
+      activeTab = this.state.activeTab;
+    }
+
     return (
       <div style={{flexDirection: 'column', display: 'flex', height: '100%'}}>
         <div>
           <ol className="tab-list">
             {children.map((child) => {
-              const { label } = child.props;
-
+              const { label, onClose } = child.props;
               return (
                 <Tab
                   activeTab={activeTab}
                   key={label}
                   label={label}
                   onClick={onClickTabItem}
+                  onClose={onClose}
+                  onClosed={this.onClosed}
                 />
               );
             })}

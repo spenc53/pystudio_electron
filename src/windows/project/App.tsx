@@ -16,6 +16,8 @@ import { KernelStatus } from '../../constants/KernelStatus';
 import ProjectData from '../../project/ProjectData';
 import ProjectState from '../../project/ProjectState';
 import VariableView from '../../components/variableView';
+import Editor from '../../components/editor';
+import FileService from '../../services/FileService';
 
 
 declare global {
@@ -34,6 +36,7 @@ const { ipcRenderer } = window.require('electron');
 class App extends Component {
 
   messagingService: JupyterMessagingService;
+  fileService: FileService;
 
   state: {
     active: KernelStatus,
@@ -46,6 +49,7 @@ class App extends Component {
     super(props);
 
     this.messagingService = new JupyterMessagingService(ipcRenderer);
+    this.fileService = new FileService();
 
     this.state = {
       active: KernelStatus.STOPPED,
@@ -92,7 +96,8 @@ class App extends Component {
           <HorizontalSplitPane.Left>
             <SplitPane>
               <SplitPane.Top>
-                <CodeEditor messagingService={this.messagingService}></CodeEditor>
+                <Editor messagingService={this.messagingService} fileService={this.fileService}></Editor>
+                {/* <CodeEditor messagingService={this.messagingService}></CodeEditor> */}
               </SplitPane.Top>
               <SplitPane.Bottom>
                 <div style={{height:'-webkit-fill-available'}}>
