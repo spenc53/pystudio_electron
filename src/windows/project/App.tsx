@@ -3,8 +3,8 @@ import './App.css';
 
 import SplitPane from '../../components/splitpane/SplitPane';
 
-import { IpcRenderer, Dialog, Remote } from 'electron';
-import { OPEN_PROJECT, KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from '../../constants/Channels';
+import { IpcRenderer, Remote } from 'electron';
+import { KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from '../../constants/Channels';
 import Plot from '../../components/plot';
 import Terminal from '../../components/terminal';
 import Modal from '../../components/modal';
@@ -13,10 +13,8 @@ import Tabs from '../../components/tabs/Tabs';
 import HorizontalSplitPane from '../../components/horizontalSplitPane';
 import JupyterMessagingService from '../../services/JupyterMessagingService';
 import { KernelStatus } from '../../constants/KernelStatus';
-import ProjectData from '../../project/ProjectData';
-import ProjectState from '../../project/ProjectState';
 import VariableView from '../../components/variableView';
-
+import FileViewer from '../../components/fileViewer';
 
 declare global {
   interface Window {
@@ -27,9 +25,9 @@ declare global {
   }
 }
 
-const fs = window.require('fs');
-
 const { ipcRenderer } = window.require('electron');
+
+const Store = window.require('electron-store');
 
 class App extends Component {
 
@@ -41,6 +39,8 @@ class App extends Component {
   };
 
   projectDir: string;
+
+  store = new Store();
 
   constructor(props: any) {
     super(props);
@@ -121,7 +121,7 @@ class App extends Component {
                 <div style={{height:'-webkit-fill-available'}}>
                   <div style={{height:'100%'}}>
                     <Tabs>
-                      <div {...this.props && {_key: "file", label:"Files"}}>Stuff</div>
+                      <FileViewer {...this.props && {_key: "file", label:"Files"}} base={this.store.get('projectPath')} projectName={'project'}></FileViewer>
                       <Plot {...this.props && {_key: "plot", label:"Plot"}} messagingService={this.messagingService}></Plot>
                       <div {...this.props && {_key: "packages", label:"Packages"}}>Stuff</div>
                       <div {...this.props && {_key: "help", label:"Help"}}>Stuff</div>
