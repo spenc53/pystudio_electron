@@ -29,6 +29,7 @@ const Store = require('electron-store');
 let mainWindow: any;
 let openWindow: any;
 let loadingWindow: any;
+let saveFileWindow: any;
 let kernelConnection: KernelConnection;
 
 const storage = new Store();
@@ -144,6 +145,47 @@ ipcMain.addListener('OPEN_PROJECT', (_, pathToProject) => {
 ipcMain.addListener(CREATE_PROJECT_NEW, (_) => {
   createProject();
 })
+
+ipcMain.addListener('SAVE_FILE', (event, fileName) => {
+
+  // show window
+  // event.returnValue('SAVE_AND_CLOSE');
+
+  saveFileWindow = new BrowserWindow({
+    width: 400,
+    height: 200,
+    parent: mainWindow,
+    modal: true,
+    webPreferences: {
+      nodeIntegration: true,
+      nodeIntegrationInWorker: true
+    },
+    show: false
+  });
+
+  saveFileWindow.once('ready-to-show', () => {
+    saveFileWindow.show();
+    saveFileWindow?.webContents.send('SAVE_FILE', fileName);
+    ipcMain.once('SAVE_' + fileName, (_: any, args: any) => {
+      saveFileWindow.close();
+      event.returnValue = args;
+    })
+  });
+
+  saveFileWindow.loadURL(isDev ? 'http://localhost:3000?save' : `file://${path.join(__dirname, '../../index.html?save')}`);
+  // if (isDev) {
+    // Open the DevTools.
+    //BrowserWindow.addDevToolsExtension('<location to your react chrome extension>');
+    // saveFileWindow.webContents.openDevTools();
+  // }
+  saveFileWindow.on('closed', () => {
+    saveFileWindow = null
+  });
+
+  
+  
+});
+
 
 function openPystudioProject() {
   const pathToProject = openFolder();

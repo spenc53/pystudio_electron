@@ -1,8 +1,8 @@
 import React from 'react';
 import JupyterMessagingService from '../../services/JupyterMessagingService';
+import { Subject } from 'rxjs';
 
-import AceEditor, { IEditorProps } from 'react-ace';
-import { ifError } from 'assert';
+import AceEditor from 'react-ace';
 
 // Import a Mode (language)
 require('ace-builds/src-noconflict/mode-python');
@@ -13,8 +13,12 @@ require('ace-builds/src-noconflict/theme-xcode');
 // Import language tools/autocomplete; need to update to ace-builds
 require("brace/ext/language_tools");
 
+const fs = window.require('fs');
+
 export type CodeEditorProps = {
     messagingService: JupyterMessagingService;
+    fileLocation: string,
+    changedSubject: Subject<boolean>;
 }
 
 class CodeEditor extends React.Component<CodeEditorProps> {
@@ -23,29 +27,64 @@ class CodeEditor extends React.Component<CodeEditorProps> {
 
     jupyterMessagingService: JupyterMessagingService;
 
+    type: string;
+
+    changedSubject: Subject<boolean>
+
+    fileData: string = '';
+
+    static typeTable:any = {
+        "py" : "python",
+        "python": "python",
+        "" : "txt"
+    }
+
     constructor(props: CodeEditorProps, context: CodeEditorProps) {
         super(props, context);
+        this.changedSubject = props.changedSubject;
         this.onChange = this.onChange.bind(this);
+        this.onSave = this.onSave.bind(this);
         this.jupyterMessagingService = props.messagingService;
 
         this.aceEditorRef = React.createRef();
+
+        let tempType = props.fileLocation.split('\.').pop();
+        this.type = tempType ? CodeEditor.typeTable[tempType] : "";
+        
+        fs.readFile(this.props.fileLocation, (err: any, data: any) => {
+            this.fileData = data.toString();
+            this.aceEditorRef.current.editor.setValue(this.fileData, -1);
+        });
     }
 
     onChange(newValue: string) {
-        console.log('change', newValue);
+        if (newValue === this.fileData) {
+            this.changedSubject.next(true);
+        } else {
+            this.changedSubject.next(false);
+        }
+    }
+
+    onSave() {
+        this.fileData = this.aceEditorRef.current.editor.getSession().getValue();
+        fs.writeFileSync(this.props.fileLocation, this.fileData);
+        this.changedSubject.next(true);
     }
 
     render() {
         return(
+            <>
                 <AceEditor
                     ref={this.aceEditorRef}
-                    mode="python"
+                    mode={this.type}
                     style={{height:'100%', width:'100%'}}
                     theme="xcode"
-                    name="UNIQUE_ID_OF_DIV"
+                    name={'CODE_EDITOR_' + this.props.fileLocation}
+                    
                     editorProps={{
-                    $blockScrolling: true
+                        $blockScrolling: true
                     }}
+                    onChange={this.onChange}
                     
                     setOptions={{
                         enableBasicAutocompletion: true,
@@ -57,14 +96,12 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                         {
                             name: 'saving',
                             bindKey: {win: 'control-s', mac: 'cmd-s'},
-                            exec: () => {console.log('save logged')}
+                            exec: () => {this.onSave()}
                         },
                         {
                             name: 'execute_code',
                             bindKey: {win: 'control-enter', mac:'cmd-enter'},
                             exec: () => {
-
-                                const editor = this.aceEditorRef.current.editor;
                                 const session = this.aceEditorRef.current.editor.session;
                                 const selection = this.aceEditorRef.current.editor.selection;
                                 const selectedText = session.getTextRange(selection.getRange());
@@ -82,6 +119,7 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                         }
                     ]}
                 />
+            </>
         )
     }
 }

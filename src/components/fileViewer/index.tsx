@@ -3,12 +3,14 @@ import React from 'react';
 import { ReactComponent as OpenFolder } from './folder_open.svg';
 import { ReactComponent as FileIcon } from './file.svg';
 import './fileViewer.css'
+import FileService from '../../services/FileService';
 
 const fs = window.require('fs');
 
 interface FileViewerProps {
     base: string,
-    projectName: string
+    projectName: string,
+    fileService: FileService
 }
 
 class FileViewer extends React.Component<FileViewerProps> {
@@ -51,7 +53,7 @@ class FileViewer extends React.Component<FileViewerProps> {
     }
 
     openFile(fileName: string) {
-        console.log(this.props.base + '/' + this.state.currDirectory + "/" + fileName)
+        this.props.fileService.openFile(this.props.base + '/' + this.state.currDirectory + "/" + fileName);
     }
 
     render() {

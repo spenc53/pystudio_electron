@@ -8,12 +8,13 @@ import { KERNEL_STATUS, LOADING_PROJECT_CHANNEL } from '../../constants/Channels
 import Plot from '../../components/plot';
 import Terminal from '../../components/terminal';
 import Modal from '../../components/modal';
-import CodeEditor from "../../components/codeEditor";
 import Tabs from '../../components/tabs/Tabs';
 import HorizontalSplitPane from '../../components/horizontalSplitPane';
 import JupyterMessagingService from '../../services/JupyterMessagingService';
 import { KernelStatus } from '../../constants/KernelStatus';
 import VariableView from '../../components/variableView';
+import Editor from '../../components/editor';
+import FileService from '../../services/FileService';
 import FileViewer from '../../components/fileViewer';
 
 declare global {
@@ -32,6 +33,7 @@ const Store = window.require('electron-store');
 class App extends Component {
 
   messagingService: JupyterMessagingService;
+  fileService: FileService;
 
   state: {
     active: KernelStatus,
@@ -46,6 +48,7 @@ class App extends Component {
     super(props);
 
     this.messagingService = new JupyterMessagingService(ipcRenderer);
+    this.fileService = new FileService();
 
     this.state = {
       active: KernelStatus.STOPPED,
@@ -92,7 +95,7 @@ class App extends Component {
           <HorizontalSplitPane.Left>
             <SplitPane>
               <SplitPane.Top>
-                <CodeEditor messagingService={this.messagingService}></CodeEditor>
+                <Editor messagingService={this.messagingService} fileService={this.fileService}></Editor>
               </SplitPane.Top>
               <SplitPane.Bottom>
                 <div style={{height:'-webkit-fill-available'}}>
@@ -121,7 +124,7 @@ class App extends Component {
                 <div style={{height:'-webkit-fill-available'}}>
                   <div style={{height:'100%'}}>
                     <Tabs>
-                      <FileViewer {...this.props && {_key: "file", label:"Files"}} base={this.store.get('projectPath')} projectName={'project'}></FileViewer>
+                      <FileViewer {...this.props && {_key: "file", label:"Files"}} base={this.store.get('projectPath')} projectName={'project'} fileService={this.fileService}></FileViewer>
                       <Plot {...this.props && {_key: "plot", label:"Plot"}} messagingService={this.messagingService}></Plot>
                       <div {...this.props && {_key: "packages", label:"Packages"}}>Stuff</div>
                       <div {...this.props && {_key: "help", label:"Help"}}>Stuff</div>
