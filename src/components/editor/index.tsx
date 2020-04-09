@@ -3,6 +3,9 @@ import Tabs from '../tabs/Tabs';
 import JupyterMessagingService from '../../services/JupyterMessagingService';
 import CodeEditor from '../codeEditor';
 import FileService from '../../services/FileService';
+import { Subject, BehaviorSubject } from 'rxjs';
+
+const { ipcRenderer } = window.require('electron');
 
 const fs = window.require('fs');
 
@@ -37,19 +40,37 @@ class Editor extends React.Component<EditorProps> {
     }
 
     openFile(file: string) {
+        const items = this.state.openedFiles.filter((f) =>  f.fileName === file);
+        if (items.length > 0) {
+            return;
+        }
+
         const fileName = file.split('/').pop();
+        const changeSubject = new BehaviorSubject<boolean>(false);
+        const ref = React.createRef<CodeEditor>();
         this.setState(
             {
                 openedFiles: this.state.openedFiles.concat({
                     fileName: file, 
-                    component: <CodeEditor {...this.props && {_key: fileName, label:fileName, onClose:() => this.closeFile(file)}} messagingService={this.props.messagingService} fileLocation={file}/>
+                    component: <CodeEditor key={'EDITOR_' + fileName} ref={ref} {...this.props && {label: fileName, onClose:(isSaved: boolean) => this.closeFile(isSaved, file), changedSubject: changeSubject}} messagingService={this.props.messagingService} fileLocation={file} changedSubject={changeSubject}/>
                 }),
             }
         )
     }
 
-    closeFile(file: string) {
-        // indexes should match up
+    closeFile(isSaved: boolean, file: string) {
+        const component = this.state.openedFiles.filter((f) =>  f.fileName === file)[0];
+
+        if (!isSaved) {
+            const data = ipcRenderer.sendSync('SAVE_FILE', component.fileName);
+            
+            if (data == 'SAVE_AND_CLOSE') {
+                component.component.ref.current.onSave();
+            } else if ('CANCEL') {
+                return;
+            }
+        }
+
         this.setState(
             {
                 openedFiles: this.state.openedFiles.filter((f) =>  f.fileName !== file)
@@ -63,15 +84,6 @@ class Editor extends React.Component<EditorProps> {
                 {this.state.openedFiles.map((file, index) => {
                     return file.component;
                 })}
-                {/* <CodeEditor {...this.props && {_key: "file", label:"Files"}} messagingService={this.props.messagingService} fileLocation={'/test.txt'}></CodeEditor>
-                <div {...this.props && {_key: "packages", label:"Package"}}>Stuff</div>
-                <div {...this.props && {_key: "help", label:"Help"}}>Stuff</div>
-                <div {...this.props && {_key: "file1", label:"Files1"}}>Stuff</div>
-                <div {...this.props && {_key: "packages2", label:"Packages2"}}>Stuff</div>
-                <div {...this.props && {_key: "help3", label:"Help3"}}>Stuff</div>
-                <div {...this.props && {_key: "file4", label:"Files4"}}>Stuff</div>
-                <div {...this.props && {_key: "packages5", label:"Packages5"}}>Stuff</div>
-                <div {...this.props && {_key: "help6", label:"Help6"}}>Stuff</div> */}
             </Tabs>
         )
     }

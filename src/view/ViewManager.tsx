@@ -6,14 +6,15 @@ import {
 } from 'react-router-dom';
 import OpenView from '../windows/open/OpenView';
 import LoadingView from '../windows/loading/LoadingView';
-
+import SaveFileView from '../windows/savefile/SaveFileView';
 
 class ViewManager extends React.Component {
     static Views(): any {
         return {
             main: <App/>,
             open: <OpenView/>,
-            loading: <LoadingView/>
+            loading: <LoadingView/>,
+            save: <SaveFileView/>
             // other view
         }
     }

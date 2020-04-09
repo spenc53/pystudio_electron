@@ -22,9 +22,9 @@ class Tabs extends Component {
   }
 
   onClosed() {
-    this.setState({
-      activeTab: React.Children.toArray(this.props.children)[0].props.label
-    })
+    // this.setState({
+    //   activeTab: React.Children.toArray(this.props.children)[0].props.label
+    // })
   }
 
   render() {
@@ -43,30 +43,31 @@ class Tabs extends Component {
       };
       activeTab = this.state.activeTab;
     }
-
     return (
+      
       <div style={{flexDirection: 'column', display: 'flex', height: '100%'}}>
         <div>
           <ol className="tab-list">
             {children.map((child) => {
-              const { label, onClose } = child.props;
+              const { label, onClose, changedSubject } = child.props;
               return (
                 <Tab
                   activeTab={activeTab}
-                  key={label}
+                  key={'TAB_' + label}
                   label={label}
                   onClick={onClickTabItem}
                   onClose={onClose}
                   onClosed={this.onClosed}
+                  changedSubject={changedSubject}
                 />
               );
             })}
           </ol>
         </div>
         <div className="tab-content">
-          {children.map((child, index) => {
+          {children.map((child) => {
             return (
-                <div key={index} style={{display: child.props.label !== activeTab ? 'none' : 'flex', height:'100%', flexDirection:'column'}}>
+                <div key={child.key} style={{display: child.props.label !== activeTab ? 'none' : 'flex', height:'100%', flexDirection:'column'}}>
                     {child}
                 </div>
             );

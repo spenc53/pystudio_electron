@@ -1,5 +1,6 @@
 import React from 'react';
 import JupyterMessagingService from '../../services/JupyterMessagingService';
+import { Subject } from 'rxjs';
 
 import AceEditor from 'react-ace';
 
@@ -16,7 +17,8 @@ const fs = window.require('fs');
 
 export type CodeEditorProps = {
     messagingService: JupyterMessagingService;
-    fileLocation: string
+    fileLocation: string,
+    changedSubject: Subject<boolean>;
 }
 
 class CodeEditor extends React.Component<CodeEditorProps> {
@@ -27,6 +29,10 @@ class CodeEditor extends React.Component<CodeEditorProps> {
 
     type: string;
 
+    changedSubject: Subject<boolean>
+
+    fileData: string = '';
+
     static typeTable:any = {
         "py" : "python",
         "python": "python",
@@ -35,6 +41,7 @@ class CodeEditor extends React.Component<CodeEditorProps> {
 
     constructor(props: CodeEditorProps, context: CodeEditorProps) {
         super(props, context);
+        this.changedSubject = props.changedSubject;
         this.onChange = this.onChange.bind(this);
         this.onSave = this.onSave.bind(this);
         this.jupyterMessagingService = props.messagingService;
@@ -45,16 +52,23 @@ class CodeEditor extends React.Component<CodeEditorProps> {
         this.type = tempType ? CodeEditor.typeTable[tempType] : "";
         
         fs.readFile(this.props.fileLocation, (err: any, data: any) => {
-            this.aceEditorRef.current.editor.setValue(data.toString(), -1)
+            this.fileData = data.toString();
+            this.aceEditorRef.current.editor.setValue(this.fileData, -1);
         });
     }
 
     onChange(newValue: string) {
-        console.log('change', newValue);
+        if (newValue === this.fileData) {
+            this.changedSubject.next(true);
+        } else {
+            this.changedSubject.next(false);
+        }
     }
 
     onSave() {
-        fs.writeFileSync(this.props.fileLocation, this.aceEditorRef.current.editor.getSession().getValue())
+        this.fileData = this.aceEditorRef.current.editor.getSession().getValue();
+        fs.writeFileSync(this.props.fileLocation, this.fileData);
+        this.changedSubject.next(true);
     }
 
     render() {
@@ -65,10 +79,12 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                     mode={this.type}
                     style={{height:'100%', width:'100%'}}
                     theme="xcode"
-                    name="UNIQUE_ID_OF_DIV"
+                    name={'CODE_EDITOR_' + this.props.fileLocation}
+                    
                     editorProps={{
-                    $blockScrolling: true
+                        $blockScrolling: true
                     }}
+                    onChange={this.onChange}
                     
                     setOptions={{
                         enableBasicAutocompletion: true,
@@ -86,8 +102,6 @@ class CodeEditor extends React.Component<CodeEditorProps> {
                             name: 'execute_code',
                             bindKey: {win: 'control-enter', mac:'cmd-enter'},
                             exec: () => {
-
-                                const editor = this.aceEditorRef.current.editor;
                                 const session = this.aceEditorRef.current.editor.session;
                                 const selection = this.aceEditorRef.current.editor.selection;
                                 const selectedText = session.getTextRange(selection.getRange());
