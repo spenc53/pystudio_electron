@@ -1,4 +1,4 @@
-import { app, dialog, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain } from 'electron';
+import { app, dialog, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain, ipcRenderer } from 'electron';
 import * as path from 'path';
 import * as isDev from 'electron-is-dev';
 import {
@@ -181,11 +181,7 @@ ipcMain.addListener('SAVE_FILE', (event, fileName) => {
   saveFileWindow.on('closed', () => {
     saveFileWindow = null
   });
-
-  
-  
 });
-
 
 function openPystudioProject() {
   const pathToProject = openFolder();

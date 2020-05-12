@@ -4,7 +4,9 @@ import { ReactComponent as OpenFolder } from './folder_open.svg';
 import { ReactComponent as FileIcon } from './file.svg';
 import './fileViewer.css'
 import FileService from '../../services/FileService';
+import ImageButton from '../imageButton';
 
+const { ipcRenderer } = window.require('electron');
 const fs = window.require('fs');
 
 interface FileViewerProps {
@@ -20,6 +22,7 @@ class FileViewer extends React.Component<FileViewerProps> {
     }
 
     watcher: any;
+    editedFile?: string;
 
     constructor(props: FileViewerProps) {
         super(props);
@@ -31,6 +34,8 @@ class FileViewer extends React.Component<FileViewerProps> {
         this.goUpDir = this.goUpDir.bind(this);
         this.openDir = this.openDir.bind(this);
         this.openFile = this.openFile.bind(this);
+        this.newFile = this.newFile.bind(this);
+        this.newFolder = this.newFolder.bind(this);
     }
 
     goUpDir() {
@@ -56,6 +61,44 @@ class FileViewer extends React.Component<FileViewerProps> {
         this.props.fileService.openFile(this.props.base + '/' + this.state.currDirectory + "/" + fileName);
     }
 
+    newFolder() {
+        const savePath = this.props.base + '/' + this.state.currDirectory + "/New Folder";
+        fs.mkdir(savePath, 0o755, (err: any) =>{
+            this.editedFile = "New Folder";
+            this.forceUpdate();
+        });
+    }
+
+    newFile() {
+        const savePath = this.props.base + '/' + this.state.currDirectory + "/untitled";
+        fs.writeFile(savePath, '', (err: any) =>{
+            this.editedFile = "untitled";
+            this.forceUpdate();
+        });
+    }
+
+    fileMenu(fileName: string) {
+        this.editedFile = fileName;
+        this.forceUpdate();
+    }
+
+    updateFileName(oldFileName: string, newFileName: string) {
+        if (oldFileName !== newFileName) {
+            const oldPath = this.props.base + '/' + this.state.currDirectory + "/" + oldFileName;
+            const newPath = this.props.base + '/' + this.state.currDirectory + "/" + newFileName;
+            fs.rename(oldPath, newPath, () => {});
+        }
+        this.editedFile = undefined;
+        this.forceUpdate();
+    }
+
+    handleRenameKeyPress(event: any, fileName: string){
+        if (event.key === 'Enter') {
+            this.updateFileName(fileName, event.target.value)
+        }
+    }
+
+
     render() {
         if (this.watcher) {
             this.watcher.close();
@@ -71,14 +114,13 @@ class FileViewer extends React.Component<FileViewerProps> {
 
             return a.name.localeCompare(b.name);
         });
-        console.log(data);
         this.watcher = fs.watch(this.props.base + '/' + this.state.currDirectory, (eventName: string, fileName: string) => {
             if (eventName === 'rename') this.forceUpdate();
         });
         return(
             <>
-                <div style={{borderBottom: '#D6DADC 1px solid', background:'#F4F8F9', padding:'5px'}}>
-                    <div style={{display: 'flex'}} className='path'>
+                <div style={{borderBottom: '#D6DADC 1px solid', background:'#F4F8F9', padding:'5px', display: 'flex', flexDirection: 'row'}}>
+                    <div style={{display: 'flex', marginRight: '5px'}} className='path'>
                         <div>{this.props.projectName}</div>
                         {this.state.currDirectory.split('/').map((path: string, index: number) => {
                             if (!path.trim()) return null;
@@ -89,6 +131,16 @@ class FileViewer extends React.Component<FileViewerProps> {
                             )
                         })}
                     </div>
+                    <div style={{display: 'flex'}}>
+                        <ImageButton onClick={this.newFile}>
+                            <FileIcon className='icon'></FileIcon>
+                        </ImageButton>
+                    </div>
+                    <div style={{display: 'flex'}}>
+                        <ImageButton onClick={this.newFolder}>
+                            <OpenFolder className='icon'></OpenFolder>
+                        </ImageButton>
+                    </div>
                 </div>
                 <div className='items'>
                     { !this.state.currDirectory.trim() ? 
@@ -96,8 +148,29 @@ class FileViewer extends React.Component<FileViewerProps> {
                         <div className='item' key="../" onClick={this.goUpDir}><OpenFolder className='icon'/><div className='name'>../</div></div>
                     }
                     {data.map((dat: any) => {
+                        if (dat.name == this.editedFile) {
+                            return (
+                                <div key={dat.name} style={{display:'flex', flexDirection:'row'}}>
+                                    <div>
+                                        {
+                                            dat.isDirectory() ? <OpenFolder className='icon'/> : null
+                                        }
+                                        {
+                                            dat.isFile() ? <FileIcon className='icon'/> : null
+                                        }
+                                    </div>
+                                    <div style={{marginLeft:"10px"}}>
+                                        <input onKeyPress={(event) => this.handleRenameKeyPress(event, dat.name)} autoFocus={true} onBlur={(event) => {this.updateFileName(dat.name, event.target.value)}} defaultValue={dat.name}></input>
+                                    </div>
+                                </div>
+                            )
+                        }
+
                         return (
-                            <div key={dat.name} className='item' onClick={() => dat.isDirectory() ? this.openDir(dat.name) : this.openFile(dat.name)}>
+                            <div className='item'
+                                onClick={() => dat.isDirectory() ? this.openDir(dat.name) : this.openFile(dat.name)}
+                                onContextMenu={() => this.fileMenu(dat.name)}
+                            >
                                 <div>
                                     {
                                         dat.isDirectory() ? <OpenFolder className='icon'/> : null
